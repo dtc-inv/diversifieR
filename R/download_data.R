@@ -209,6 +209,60 @@ refresh_bd_key = function(api_keys, save_to_n = FALSE) {
 
 # factset ----
 
+#' @title Download from Factset Global Prices API
+#' @export
+download_fs_gp <- function(api_keys, ids, date_start, date_end, freq = 'D') {
+  username <- api_keys$fs$username
+  password <- api_keys$fs$password
+  ids[is.na(ids)] <- ""
+  url <- "https://api.factset.com/content/factset-global-prices/v1/returns"
+  request <- list(
+    ids = as.list(ids),
+    startDate = date_start,
+    endDate = date_end,
+    frequency = freq,
+    dividendAdjust = "EXDATE_C",
+    batch = "N"
+  )
+  response <- httr::POST(
+    url, authenticate(username, password), body = request,
+    add_headers(Accept = 'application/json'), encode = 'json')
+  output <- rawToChar(response$content)
+  json <- parse_json(output)
+  return(json)
+}
+
+#' @title Flatten JSON returned from Factset Global API
+#' @export
+flatten_fs_gp <- function(json) {
+  if ('status' %in% names(json)) {
+    if (json$status == "Bad Request") {
+      warning('bad request, returning empty data.frame')
+      return(data.frame())
+    }
+  }
+  dat <- json$data
+  requestId <- sapply(dat, '[[', 'requestId')
+  if (is.list(requestId)) {
+    requestId <- unlist(list_replace_null(requestId))
+  }
+  date <- sapply(dat, '[[', 'date')
+  if (is.list(date)) {
+    date <- unlist(list_replace_null(date))
+  }
+  totalReturn <- sapply(dat, '[[', 'totalReturn')
+  if (is.list(totalReturn)) {
+    totalReturn <- unlist(list_replace_null(totalReturn))
+  }
+  df <- data.frame(
+    requestId = requestId,
+    date = date,
+    totalReturn = totalReturn
+  )
+  return(df)
+}
+
+
 #' @export
 download_fs_exchange_ret <- function(
     ids,

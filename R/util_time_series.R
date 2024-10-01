@@ -159,7 +159,7 @@ xts_rbind <- function(new, old) {
   combo <- rbind(new_ldf, old_ldf[-ix, ])
   combo_w <- pivot_wider(combo, id_cols = Date, names_from = name,
                          values_from = value)
-  return(df_to_xts(combo_w))
+  return(dataframe_to_xts(combo_w))
 }
 
 

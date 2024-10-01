@@ -1,13 +1,16 @@
 Package: diversifieR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Database Management and Portfolio Analysis for DTC
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Alejandro Sotolongo
+Maintainer: Alejandro Sotolongo <asotolongo@diversifiedtrust.com>
+Description: diversifieR has two main objects. Database handles the API 
+   connections to datasources such as Factset and the data storage of arrow
+   and parquet files in AWS S3. Portfolio takes weights and returns to create
+   an investment portfolio.
+License: GNU GPLv3
 Encoding: UTF-8
 LazyData: true
-Depends: xts, lubridate, timeDate, arrow, dplyr, tidyr, R6
+Depends: xts, lubridate, timeDate, arrow, dplyr, tidyr, R6, httr, jsonlite, 
+    xml2, XML, rvest, curl
 RoxygenNote: 7.3.2

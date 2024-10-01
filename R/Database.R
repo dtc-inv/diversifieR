@@ -405,24 +405,24 @@ Database <- R6::R6Class(
     #'   objects: $d daily returns and $m monthly returns
     read_all_ret = function(all_stock = TRUE) {
       mf <- read_feather(self$bucket$path('returns/daily/mutual-fund.arrow'))
-      mf <- df_to_xts(mf)
+      mf <- dataframe_to_xts(mf)
       ctf <- read_feather(self$bucket$path('returns/daily/ctf.arrow'))
-      ctf <- df_to_xts(ctf)
+      ctf <- dataframe_to_xts(ctf)
       d <- xts_cbind(mf, ctf)
       if (all_stock) {
         sr <- read_feather(self$bucket$path('returns/daily/factset.arrow'))
-        sr <- df_to_xts(sr)
+        sr <- dataframe_to_xts(sr)
         d <- xts_cbind(d, sr)
       }
       if (any(duplicated(colnames(d)))) {
         warning('duplicated daily column names')
       }
       m <- read_feather(self$bucket$path('returns/monthly/ctf.arrow'))
-      m <- df_to_xts(m)
+      m <- dataframe_to_xts(m)
       hf <- read_parquet(self$bucket$path('hfr-files/hfr-all-ror.parquet'))
       hf <- pivot_wider(hf, id_cols = Date, values_from = Performance,
                         names_from = Fund)
-      hf <- df_to_xts(hf)
+      hf <- dataframe_to_xts(hf)
       m <- xts_cbind(m, hf)
       if (any(duplicated(colnames(m)))) {
         warning('duplicated monthly column names')
@@ -476,12 +476,28 @@ Database <- R6::R6Class(
     #'   depending on the history available and the days_back input. For
     #'   existing time-series, any overlap in the new and old returns will be
     #'   overwritten with the new returns.
-    update_fs_mf_ret_daily = function(days_back = 0) {
-      old_ret <- read_feather(self$bucket$path('returns/daily/mutual-fund.arrow'))
-      old_ret <- df_to_xts(old_ret)
-      res <- self$filter_fs_ids()
-      iter <- res$fi_iter
-      ids <- res$fi_ids
+    update_fs_mf_ret_daily = function(ids = NULL, days_back = 0) {
+      if (is.null(self$ret)) {
+        self$read_all_ret()
+      }
+      old_ret <- self$ret$d
+      if (is.null(ids)) {
+        res <- self$filter_fs_ids()
+        iter <- res$fi_iter
+        ids <- res$fi_ids
+      } else {
+        res <- list()
+        if (length(ids) > 50) {
+          iter <- seq(1, length(ids), 49)
+          if (iter[length(iter)] < length(ids)) {
+            iter <- c(iter, length(ids))
+          }
+        } else {
+          iter <- c(1, length(ids))
+        }
+        res$ids <- ids
+        res$iter <- iter
+      }
       ret_df <- data.frame()
       formulas <- paste0('P_TOTAL_RETURNC(-', days_back, 'D,NOW,D,USD)')
       for (i in 1:(length(iter)-1)) {
@@ -508,7 +524,7 @@ Database <- R6::R6Class(
       ret_df <- ret_df[!is_dup, ]
       wdf <- pivot_wider(ret_df, id_cols = date, values_from = value,
                          names_from = DTCName)
-      wdf <- df_to_xts(wdf)
+      wdf <- dataframe_to_xts(wdf)
       combo <- xts_rbind(old_ret, wdf)
       combo <- xts_to_dataframe(combo)
       write_feather(combo, self$bucket$path('returns/daily/mutual-fund.arrow'))
@@ -528,10 +544,12 @@ Database <- R6::R6Class(
     #'   The routine is run overnight to add a new return to the existing
     #'   table of returns. To add new returns specify ids and set the date_start
     #'   farther back (~5 years) to create a history.
-    update_fs_ret_daily = function(ids = NULL, date_start = NULL,
+    update_fs_exchange_ret_daily = function(ids = NULL, date_start = NULL,
                                    date_end = NULL) {
-      old_ret <- read_feather(self$bucket$path('returns/daily/factset.arrow'))
-      old_xts <- df_to_xts(old_ret)
+      if (is.null(self$ret)) {
+        self$read_all_ret()
+      }
+      old_xts <- self$ret$d
       if (is.null(ids)) {
         res <- self$filter_fs_ids(50)
       } else {
@@ -573,7 +591,7 @@ Database <- R6::R6Class(
       df$date <- as.Date(df$date)
       wdf <- pivot_wider(df, id_cols = date, values_from = totalReturn,
                          names_from = DTCName)
-      wxts <- df_to_xts(wdf)
+      wxts <- dataframe_to_xts(wdf)
       combo <- xts_rbind(wxts, old_xts)
       df_out <- xts_to_dataframe(combo)
       write_feather(df_out, self$bucket$path('returns/daily/factset.arrow'))
@@ -604,7 +622,7 @@ Database <- R6::R6Class(
       colnames(m_ret) <- ctf$DTCName[ix]
       if (add_row) {
         old_ret <- read_feather(self$bucket$path('returns/monthly/ctf.arrow'))
-        combo <- xts_rbind(df_to_xts(old_ret), m_ret)
+        combo <- xts_rbind(dataframe_to_xts(old_ret), m_ret)
         df <- xts_to_dataframe(combo)
 
       } else {
@@ -618,14 +636,17 @@ Database <- R6::R6Class(
     #' @param t_minus string for how many days back to go, default is "-1"
     #' @param add_row TRUE = add row to existing file of returns, FALSE =
     #'   overwrite and save only new returns
-    update_ctf_ret_daily = function(t_minus = "-1", add_row = TRUE) {
+    update_ctf_ret_daily = function(t_minus = 1, add_row = TRUE) {
       ctf <- subset_df(self$msl, 'ReturnSource', 'ctf_d')
       d_id <- ctf$Identifier
       rl <- list()
       ix <- rep(TRUE, length(d_id))
       for (i in 1:length(d_id)) {
-        x <- try(download_fs_ctf_ret(d_id[i], self$api_keys, t_minus,
-                                     freq = "D"))
+        x <- try(download_fs_ctf_ret(
+          d_id[i],
+          self$api_keys,
+          paste0("-", t_minus),
+          freq = "D"))
         if ('try-error' %in% class(x)) {
           rl[[i]] <- NULL
           ix[i] <- FALSE
@@ -637,7 +658,7 @@ Database <- R6::R6Class(
       colnames(d_ret) <- ctf$DTCName[ix]
       if (add_row) {
         old_ret <- read_feather(self$bucket$path('returns/daily/ctf.arrow'))
-        combo <- xts_rbind(df_to_xts(old_ret), d_ret)
+        combo <- xts_rbind(dataframe_to_xts(old_ret), d_ret)
         df <- xts_to_dataframe(combo)
       } else {
         df <- xts_to_dataframe(d_ret)

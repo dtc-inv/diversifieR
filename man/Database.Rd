@@ -129,7 +129,7 @@ of the P/E for each stock.
 \item \href{#method-Database-read_all_ret}{\code{Database$read_all_ret()}}
 \item \href{#method-Database-filter_fs_ids}{\code{Database$filter_fs_ids()}}
 \item \href{#method-Database-update_fs_mf_ret_daily}{\code{Database$update_fs_mf_ret_daily()}}
-\item \href{#method-Database-update_fs_ret_daily}{\code{Database$update_fs_ret_daily()}}
+\item \href{#method-Database-update_fs_exchange_ret_daily}{\code{Database$update_fs_exchange_ret_daily()}}
 \item \href{#method-Database-update_ctf_ret_monthly}{\code{Database$update_ctf_ret_monthly()}}
 \item \href{#method-Database-update_ctf_ret_daily}{\code{Database$update_ctf_ret_daily()}}
 \item \href{#method-Database-download_factset_sector_country}{\code{Database$download_factset_sector_country()}}
@@ -454,7 +454,7 @@ Get factset request ids from the msl
 \subsection{Method \code{update_fs_mf_ret_daily()}}{
 Update mutual fund returns with Factset formula API
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Database$update_fs_mf_ret_daily(days_back = 0)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Database$update_fs_mf_ret_daily(ids = NULL, days_back = 0)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -467,13 +467,17 @@ default is zero to pull only latest trading day}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Database-update_fs_ret_daily"></a>}}
-\if{latex}{\out{\hypertarget{method-Database-update_fs_ret_daily}{}}}
-\subsection{Method \code{update_fs_ret_daily()}}{
+\if{html}{\out{<a id="method-Database-update_fs_exchange_ret_daily"></a>}}
+\if{latex}{\out{\hypertarget{method-Database-update_fs_exchange_ret_daily}{}}}
+\subsection{Method \code{update_fs_exchange_ret_daily()}}{
 Update returns for all investments traded on an exchange
 (e.g., stocks, ETFs) with Factset Global Prices API
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Database$update_fs_ret_daily(ids = NULL, date_start = NULL, date_end = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Database$update_fs_exchange_ret_daily(
+  ids = NULL,
+  date_start = NULL,
+  date_end = NULL
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -517,7 +521,7 @@ overwrite and save only new returns}
 \subsection{Method \code{update_ctf_ret_daily()}}{
 Update CTF and SMA Returns daily
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Database$update_ctf_ret_daily(t_minus = "-1", add_row = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Database$update_ctf_ret_daily(t_minus = 1, add_row = TRUE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
