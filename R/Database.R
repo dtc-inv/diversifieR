@@ -477,10 +477,9 @@ Database <- R6::R6Class(
     #'   existing time-series, any overlap in the new and old returns will be
     #'   overwritten with the new returns.
     update_fs_mf_ret_daily = function(ids = NULL, days_back = 0) {
-      if (is.null(self$ret)) {
-        self$read_all_ret()
-      }
-      old_ret <- self$ret$d
+      old_ret <- read_feather(
+        self$bucket$path("returns/daily/mutual-fund.arrow"))
+      old_ret <- dataframe_to_xts(old_ret)
       if (is.null(ids)) {
         res <- self$filter_fs_ids()
         iter <- res$fi_iter
@@ -546,10 +545,8 @@ Database <- R6::R6Class(
     #'   farther back (~5 years) to create a history.
     update_fs_exchange_ret_daily = function(ids = NULL, date_start = NULL,
                                    date_end = NULL) {
-      if (is.null(self$ret)) {
-        self$read_all_ret()
-      }
-      old_xts <- self$ret$d
+      old_ret <- read_feather(self$bucket$path("returns/daily/factset.arrow"))
+      old_xts <- dataframe_to_xts(old_ret)
       if (is.null(ids)) {
         res <- self$filter_fs_ids(50)
       } else {
@@ -600,17 +597,20 @@ Database <- R6::R6Class(
 
     #' @description
     #' Update monthly CTF and SMA returns
-    #' @param t_minus string how many months to update, default is "-1"
+    #' @param t_minus numeric for how many months to update
     #' @param add_row TRUE = add row to existing file of returns, FALSE =
     #'   overwrite and save only new returns
-    update_ctf_ret_monthly = function(t_minus = "-1", add_row = TRUE) {
+    update_ctf_ret_monthly = function(t_minus = 1, add_row = TRUE) {
       ctf <- subset_df(self$msl, 'ReturnSource', 'ctf_d')
       m_id <- ctf$ISIN
       rl <- list()
       ix <- rep(TRUE, length(m_id))
       for (i in 1:length(m_id)) {
-        x <- try(download_fs_ctf_ret(m_id[i], self$api_keys, t_minus,
-                                     freq = 'M'))
+        x <- try(download_fs_ctf_ret(
+          m_id[i],
+          self$api_keys,
+          paste0("-", t_minus),
+          freq = 'M'))
         if ('try-error' %in% class(x)) {
           rl[[i]] <- NULL
           ix[i] <- FALSE
@@ -633,7 +633,7 @@ Database <- R6::R6Class(
 
     #' @description
     #' Update CTF and SMA Returns daily
-    #' @param t_minus string for how many days back to go, default is "-1"
+    #' @param t_minus numeric for how many days back to go
     #' @param add_row TRUE = add row to existing file of returns, FALSE =
     #'   overwrite and save only new returns
     update_ctf_ret_daily = function(t_minus = 1, add_row = TRUE) {

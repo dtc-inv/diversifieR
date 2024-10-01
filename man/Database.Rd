@@ -501,13 +501,13 @@ in the time-series.}
 \subsection{Method \code{update_ctf_ret_monthly()}}{
 Update monthly CTF and SMA returns
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Database$update_ctf_ret_monthly(t_minus = "-1", add_row = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Database$update_ctf_ret_monthly(t_minus = 1, add_row = TRUE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{t_minus}}{string how many months to update, default is "-1"}
+\item{\code{t_minus}}{numeric for how many months to update}
 
 \item{\code{add_row}}{TRUE = add row to existing file of returns, FALSE =
 overwrite and save only new returns}
@@ -527,7 +527,7 @@ Update CTF and SMA Returns daily
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{t_minus}}{string for how many days back to go, default is "-1"}
+\item{\code{t_minus}}{numeric for how many days back to go}
 
 \item{\code{add_row}}{TRUE = add row to existing file of returns, FALSE =
 overwrite and save only new returns}
