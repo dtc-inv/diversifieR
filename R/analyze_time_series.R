@@ -601,31 +601,6 @@ run_cluster <- function(ret, k_group) {
   return(res)
 }
 
-#' @export
-clean_ret_na_col <- function(ret, thresh = .05, comm_start = TRUE, 
-                             comm_end = TRUE) {
-
-  if (comm_start) {
-    first_date <- first_comm_start(ret)
-    ret <- cut_time(x, first_date)
-  }
-  if (comm_end) {
-    last_date <- last_comm_end(ret)
-    ret <- cut_time(x, last_date)
-  }
-  thresh_num <- floor(thresh * nrow(ret))
-  bad_col <- rep(FALSE, ncol(ret))
-  for (i in 1:ncol(ret)) {
-    miss <- sum(is.na(ret[, i]))
-    if (miss > thresh_num) {
-      bad_col[i] <- TRUE
-    } else {
-      ret[miss, i] <- 0
-    }
-  }
-  ret_clean <- ret[, !bad_col]
-  return(ret_clean)
-}
 
 #' @export
 daily_spline <- function(d_ret, m_ret, thresh = 0.0000001) {

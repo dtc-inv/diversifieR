@@ -200,3 +200,11 @@ port_from_holdings <- function(
   res$miss_df <- miss_df
   return(res)
 }
+
+#' @export
+rf_from_const <- function(date_start, date_end, a) {
+  dt <- us_trading_days(as.Date(date_start), as.Date(date_end))
+  rf <- xts(rep((1+a)^(1/252)-1, length(dt)), dt)
+  colnames(rf) <- "rf"
+  return(rf)
+}

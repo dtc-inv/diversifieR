@@ -1,7 +1,7 @@
 #' Portfolio Object
 #' @description
 #' Investment portfolio
-#' 
+#'
 #' @export
 Portfolio <- R6::R6Class(
   'Portfolio',
@@ -76,10 +76,10 @@ Portfolio <- R6::R6Class(
     #'   any returns or weights are missing
     #' @details
     #'   Weights are either a named vector or xts time-series. The alignment
-    #'   will look for the intersection of names. Any names not found in the 
+    #'   will look for the intersection of names. Any names not found in the
     #'   intersection will be removed. If sum_to_1 is set to TRUE the weights will
-    #'   be recalculated to sum to 100%. If the vector is not named a 
-    #'   warning will be issued and the length of the weights and number of 
+    #'   be recalculated to sum to 100%. If the vector is not named a
+    #'   warning will be issued and the length of the weights and number of
     #'   columns of the returns will be checked.
     align_reb_wgt = function(sum_to_1 = TRUE) {
       if (is.null(self$asset_ret) || is_null_dim(self$asset_ret)) {
@@ -157,8 +157,9 @@ Portfolio <- R6::R6Class(
         warning('no asset returns found')
         return(NULL)
       }
-      
-      # NULL rebalance handle as buy and hold, or don't add additional dates to rebal
+
+      # NULL rebalance handle as buy and hold, or don't add additional
+      # dates to rebal
       if (is.null(reb_freq)) {
         reb_freq <- self$reb_freq
         if (is.null(reb_freq)) {
@@ -166,14 +167,14 @@ Portfolio <- R6::R6Class(
         }
       }
       reb_freq <- check_reb_freq(reb_freq)
-      
+
       if (is.null(reb_wgt)) {
         reb_wgt <- self$reb_wgt
       }
-      
+
       # make sure weight and return columns match
       self$align_reb_wgt()
-      
+
       # set start and end dates based on returns
       date_start <- zoo::index(self$asset_ret)[1]
       date_end <- zoo::index(self$asset_ret)[nrow(self$asset_ret)]
@@ -214,7 +215,8 @@ Portfolio <- R6::R6Class(
         add_reb <- xts(matrix(as.numeric(NA), nrow = length(dt_vec),
                               ncol = ncol(self$asset_ret)),
                        dt_vec)
-        # remove any potential duplicate dates if existing rebalance on period end
+        # remove any potential duplicate dates if existing rebalance on
+        # period end
         is_dup <- zoo::index(add_reb) %in% zoo::index(reb_wgt)
         reb_combo <- rbind(add_reb[!is_dup, ], reb_wgt)
         if (all(is.na(reb_combo[1, ]))) {
@@ -266,8 +268,10 @@ Portfolio <- R6::R6Class(
       # asset weight is beginning of period weight
       asset_wgt <- matrix(nrow = n_obs, ncol = ncol(asset_ret))
       colnames(asset_wgt) <- colnames(asset_ret)
-      # assumes rebalance happens at beginning of each day (or month, year, etc),
-      # and then that day's return is applied to create an end of day wealth value
+      # assumes rebalance happens at beginning of each day
+      # (or month, year, etc),
+      # and then that day's return is applied to create an end of day
+      # wealth value
       for (i in 1:n_obs) {
         asset_idx[i + 1, ] <- asset_idx[i, ] * (1 + asset_ret[i, ])
         asset_wgt[i, ] <- asset_idx[i, ] / sum(asset_idx[i, ])
@@ -301,14 +305,6 @@ Portfolio <- R6::R6Class(
       self$port_ret <- price_to_ret(port_wealth)
       self$asset_wgt <- asset_wgt
       invisible(self)
-    },
-
-    calc_perf_stats = function(type = c('port', 'asset')) {
-      if (tolower(type) == 'asset') {
-        is_latest <- self$asset_wgt[nrow(self$asset_wgt)] > 0.00001
-        is_latest <- as.logical(is_latest)
-        r <- self$asset_ret[, is_latest]
-      }
     }
   )
 )
