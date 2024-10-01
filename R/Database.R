@@ -502,7 +502,7 @@ Database <- R6::R6Class(
         ret_df <- rob_rbind(ret_df, i_df)
       }
       ret_df$value <- ret_df$value / 100
-      ix <- request_id_match_msl(ret_df$requestId, self$msl)
+      ix <- id_match_msl(ret_df$requestId, self$msl)
       ret_df$DTCName <- self$msl$DTCName[ix]
       is_dup <- duplicated(paste0(ret_df$DTCName, ret_df$date))
       ret_df <- ret_df[!is_dup, ]
@@ -565,7 +565,7 @@ Database <- R6::R6Class(
         df <- rob_rbind(df, flatten_fs_gp(json))
         print(res$iter[i])
       }
-      ix <- request_id_match_msl(df$requestId, self$msl)
+      ix <- id_match_msl(df$requestId, self$msl)
       df$DTCName <- self$msl$DTCName[ix]
       df$totalReturn <- df$totalReturn / 100
       is_dup <- duplicated(paste0(df$DTCName, df$date))
@@ -697,7 +697,7 @@ Database <- R6::R6Class(
         print(paste0(res$iter[i], ' out of ', res$iter[length(res$iter)]))
       }
       colnames(xdf) <- c("requestId", fld)
-      ix <- request_id_match_msl(xdf$requestId, self$msl)
+      ix <- id_match_msl(xdf$requestId, self$msl)
       xdf$DTCName <- self$msl$DTCName[ix]
       old_df <- read_feather(self$bucket$path(fpath))
       combo <- rbind(old_df, xdf)
@@ -812,7 +812,7 @@ Database <- R6::R6Class(
         val_df <- rob_rbind(val_df, i_df)
         print(iter[i])
       }
-      ix <- request_id_match_msl(val_df$requestId, self$msl)
+      ix <- id_match_msl(val_df$requestId, self$msl)
       val_df$DTCName <- self$msl$DTCName[ix]
       s3_nm <- paste0('co-data/arrow/', dtype, '.arrow')
       if (add_row) {
