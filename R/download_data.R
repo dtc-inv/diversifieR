@@ -313,7 +313,7 @@ download_fs_exchange_ret <- function(
   df$date <- as.Date(df$date)
   wdf <- pivot_wider(df, id_cols = date, values_from = totalReturn,
                      names_from = requestId)
-  df_to_xts(wdf)
+  dataframe_to_xts(wdf)
 }
 
 #' @export
@@ -360,7 +360,7 @@ download_fs_mutual_fund_ret <- function(ids, api_keys, days_back) {
   ret_df <- ret_df[!is_dup, ]
   wdf <- pivot_wider(ret_df, id_cols = date, values_from = value,
                      names_from = requestId)
-  df_to_xts(wdf)
+  dataframe_to_xts(wdf)
 }
 
 #' @title Download Daily Returns from Factset

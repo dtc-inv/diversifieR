@@ -1,7 +1,7 @@
 
 port_to_perf_summary <- function(p) {
   if (is.null(p$benchmark)) {
-    bench <- p$port_ret
+    bench <- NULL
   } else {
     bench <- p$benchmark$port_ret
   }
@@ -48,5 +48,42 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
   asset <- combo[, 1:ix]
   bench <- combo[, (ix+1):(ncol(combo)-1)]
   rf <- combo[, ncol(combo)]
-  geo_ret <- calc_geo_ret(combo, freq)
+  combo <- combo[, -ncol(combo)]
+  hist_cov <- cov(combo) * freq_to_scaler(freq)
+  if (nrow(combo) >= 252) {
+    geo_ret <- calc_geo_ret(combo, freq)
+  } else {
+    geo_ret <- apply(combo + 1, 2, prod)
+  }
+  vol <- calc_vol(combo, freq)
+  down_vol <- calc_down_vol(combo, "days")
+  max_dd <- calc_max_drawdown(combo)
+  sharpe <- calc_sharpe_ratio(combo, rf, "days")
+  sortino <- calc_sortino_ratio(combo, rf, "days")
+  recov <- geo_ret / -max_dd
+  if (!is.null(bench)) {
+    x <- rbind(geo_ret, vol, down_vol, max_dd, sharpe, sortino, recov)
+    xdf <- data.frame(
+      Metric = c("Geometric Return", "Volatility", "Downside Vol",
+      "Worst Drawdown", "Sharpe Ratio", "Sortino Ratio", "Recovery"),
+      x,
+      row.names = NULL
+    )
+  } else {
+    a_cov <- list()
+    for (i in 1:ncol(bench)) {
+      a_ret <- asset - bench[, rep(i, ncol(asset))]
+      a_cov[[i]] <- cov(a_ret) * freq_to_scaler(freq)
+    }
+    bench_pad_na <- rep(NA, length(a_cov))
+    te <- c(sqrt(diag(a_cov[[1]])), bench_pad_na)
+    up_capt <- c(calc_up_capture(asset, bench[, 1]), bench_pad_na)
+    down_capt <- c(calc_down_capture(asset, bench[, 1]), bench_pad_na)
+    xbeta <- hist_cov[, (ncol(asset) + 1)] / hist_cov[(ncol(asset) + 1),
+                                                      (ncol(asset) + 1)]
+    act_ret <- c(geo_ret[1:ncol(asset)] - geo_ret[(ncol(asset)+1)],
+      bench_pad_na)
+  }
+
+
 }

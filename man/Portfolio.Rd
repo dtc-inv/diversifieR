@@ -59,7 +59,6 @@ any returns or weights are missing}
 \item \href{#method-Portfolio-check_wgt_ret}{\code{Portfolio$check_wgt_ret()}}
 \item \href{#method-Portfolio-lazy_reb_wgt}{\code{Portfolio$lazy_reb_wgt()}}
 \item \href{#method-Portfolio-rebal}{\code{Portfolio$rebal()}}
-\item \href{#method-Portfolio-calc_perf_stats}{\code{Portfolio$calc_perf_stats()}}
 \item \href{#method-Portfolio-clone}{\code{Portfolio$clone()}}
 }
 }
@@ -100,10 +99,10 @@ Align rebalance weights with corresponding asset returns
 
 \subsection{Details}{
 Weights are either a named vector or xts time-series. The alignment
-  will look for the intersection of names. Any names not found in the 
+  will look for the intersection of names. Any names not found in the
   intersection will be removed. If sum_to_1 is set to TRUE the weights will
-  be recalculated to sum to 100%. If the vector is not named a 
-  warning will be issued and the length of the weights and number of 
+  be recalculated to sum to 100%. If the vector is not named a
+  warning will be issued and the length of the weights and number of
   columns of the returns will be checked.
 }
 
@@ -139,15 +138,6 @@ Weights are either a named vector or xts time-series. The alignment
   clean_asset_ret = TRUE,
   eps = 0.05
 )}\if{html}{\out{</div>}}
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Portfolio-calc_perf_stats"></a>}}
-\if{latex}{\out{\hypertarget{method-Portfolio-calc_perf_stats}{}}}
-\subsection{Method \code{calc_perf_stats()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Portfolio$calc_perf_stats(type = c("port", "asset"))}\if{html}{\out{</div>}}
 }
 
 }
