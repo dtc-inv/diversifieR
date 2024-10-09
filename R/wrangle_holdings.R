@@ -2,7 +2,7 @@
 #' @param ids ids to match
 #' @param msl Master Security List from Database
 #' @details
-#' ids are searched in the following order: DTCName, Ticker, ISIN, CUSIP, SEDOL, 
+#' ids are searched in the following order: DTCName, Ticker, ISIN, CUSIP, SEDOL,
 #' LEI, and Identifier
 #' @export
 id_match_msl <- function(ids, msl) {
@@ -142,7 +142,7 @@ left_merge_msl <- function(mdf, msl) {
 #' @param lay which layer to drill down
 #' @param recons_wgt boolean to force weights to sum to 1
 #' @export
-drill_down <- function(mdf, msl, bucket, latest = TRUE, lay = 2, 
+drill_down <- function(mdf, msl, bucket, latest = TRUE, lay = 2,
                        recons_wgt = TRUE) {
   # if we only want the latest holdings, trim to last date
   if (latest) {
@@ -153,12 +153,12 @@ drill_down <- function(mdf, msl, bucket, latest = TRUE, lay = 2,
   # seperate funds that need drill down and extract holdings
   lay_x <- mdf$match$Layer >= lay
   if (!any(lay_x)) {
-    warning('no layers found to drill down, returning mdf with added Parent 
+    warning('no layers found to drill down, returning mdf with added Parent
             field')
     mdf$match$Parent <- "Portfolio"
     return(mdf)
   }
-  dat <- lapply(mdf$match$DTCName[lay_x], read_holdings_file, 
+  dat <- lapply(mdf$match$DTCName[lay_x], read_holdings_file,
                 bucket = db$bucket, latest = latest)
   dat <- lapply(dat, clean_emv)
 
@@ -184,7 +184,7 @@ drill_down <- function(mdf, msl, bucket, latest = TRUE, lay = 2,
   mdf$match$returnInfo <- as.Date(mdf$match$returnInfo)
   dd_holdings$returnInfo <- as.Date(dd_holdings$returnInfo)
   mdf$match <- rob_rbind(mdf$match[!lay_x, ], dd_holdings)
-  mdf$match$Parent[is.na(mdf$match$Parent)] <- 
+  mdf$match$Parent[is.na(mdf$match$Parent)] <-
     mdf$match$DTCName[is.na(mdf$match$Parent)]
   mdf$all$returnInfo <- as.Date(mdf$all$returnInfo)
   mdf$all <- rob_rbind(mdf$match, mdf$miss)
@@ -246,6 +246,21 @@ merge_country <- function(ddf, bucket) {
   country <- read_feather(bucket$path("co-data/arrow/country.arrow"))
   ddf$match <- dplyr::left_join(ddf$match, country[, c('RiskCountry', 'DTCName')],
                                 by = 'DTCName')
+  return(ddf)
+}
+
+
+#' @title Merge Piper Sandler Macro Select Model Rankings
+#' @param ddf list output from drill_down or merge_msl for a group of stocks
+#' @param macro_df data.frame of macro rankings, e.g., db$macro$r3, see
+#'   update_macro
+#' @note
+#'   Relies on column order given names of factors will change, will need to
+#'   update if columns are added or deleted from the piper sandler workbook
+#' @export
+merge_macro <- function(ddf, macro_df) {
+  ix <- match(ddf$match$Ticker, macro_df$Ticker)
+  ddf$match <- cbind(ddf$match, macro_df[ix, 8:12])
   return(ddf)
 }
 
@@ -329,7 +344,7 @@ latest_holdings <- function(df) {
 
 
 #' @title Group holdings data.frame
-#' @param ddf holdings data.frame that has been drilled down, see 
+#' @param ddf holdings data.frame that has been drilled down, see
 #'   drill_down
 #' @param bdf benchmark data.frame
 #' @param gp_by string to represent which column to group data by
@@ -343,12 +358,12 @@ group_df <- function(ddf, gp_by, bucket, bdf = NULL, recons_wgt = TRUE) {
   x_parent <- split(x, x$Parent)
   x_par_wgt <- sapply(x_parent, function(x) {sum(x$pctVal, na.rm = TRUE)})
   if (gp_by == "Ticker") {
-    xdf <- pivot_wider(x, id_cols = DTCName, names_from = Parent, 
+    xdf <- pivot_wider(x, id_cols = DTCName, names_from = Parent,
                        values_from = pctVal, values_fn = sum)
     xdf$Total <- rowSums(xdf[, -1], na.rm = TRUE)
     if (recons_wgt) {
       tot <- colSums(xdf[, 2:(ncol(xdf)-1)], na.rm = TRUE)
-      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] / 
+      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] /
         matrix(tot, nrow = nrow(xdf), ncol = length(tot), byrow = TRUE)
     }
     ix <- match(xdf$DTCName, x$DTCName)
@@ -360,29 +375,29 @@ group_df <- function(ddf, gp_by, bucket, bdf = NULL, recons_wgt = TRUE) {
     xdf$Country <- x$RiskCountry[ix]
     xdf <- relocate(xdf, DTCName, Ticker, Total)
   } else if (gp_by == "Sector") {
-    xdf <- pivot_wider(x, id_cols = FactsetSector, names_from = Parent, 
+    xdf <- pivot_wider(x, id_cols = FactsetSector, names_from = Parent,
                        values_from = pctVal, values_fn = sum)
     xdf$Total <- rowSums(xdf[, -1], na.rm = TRUE)
     if (recons_wgt) {
       tot <- colSums(xdf[, 2:(ncol(xdf)-1)], na.rm = TRUE)
-      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] / 
+      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] /
         matrix(tot, nrow = nrow(xdf), ncol = length(tot), byrow = TRUE)
     }
     xdf <- relocate(xdf, FactsetSector, Total)
     return(xdf)
   } else if(gp_by == "Country") {
-    xdf <- pivot_wider(x, id_cols = RiskCountry, names_from = Parent, 
+    xdf <- pivot_wider(x, id_cols = RiskCountry, names_from = Parent,
                        values_from = pctVal, values_fn = sum)
     xdf$Total <- rowSums(xdf[, -1], na.rm = TRUE)
     if (recons_wgt) {
       tot <- colSums(xdf[, 2:(ncol(xdf)-1)], na.rm = TRUE)
-      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] / 
+      xdf[, 2:(ncol(xdf)-1)] <- xdf[, 2:(ncol(xdf)-1)] /
         matrix(tot, nrow = nrow(xdf), ncol = length(tot), byrow = TRUE)
     }
     xdf <- relocate(xdf, RiskCountry, Total)
   } else if (gp_by == "Parent") {
     pct_val <- sapply(x_parent, \(x) sum(x$pctVal))
-    
+
   } else {
     return(NULL)
   }
@@ -450,7 +465,7 @@ merge_list <- function(x) {
   }
   res <- data.frame(id = id, res)
   if (length(names(x)) == length(x)) {
-    colnames(res)[-1] <- names(x)   
+    colnames(res)[-1] <- names(x)
   }
   return(res)
 }

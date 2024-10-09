@@ -15,6 +15,6 @@ id_match_msl(ids, msl)
 Match ids to MSL
 }
 \details{
-ids are searched in the following order: DTCName, Ticker, ISIN, CUSIP, SEDOL, 
+ids are searched in the following order: DTCName, Ticker, ISIN, CUSIP, SEDOL,
 LEI, and Identifier
 }

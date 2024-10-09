@@ -7,7 +7,7 @@
 group_df(ddf, gp_by, bucket, bdf = NULL, recons_wgt = TRUE)
 }
 \arguments{
-\item{ddf}{holdings data.frame that has been drilled down, see 
+\item{ddf}{holdings data.frame that has been drilled down, see
 drill_down}
 
 \item{gp_by}{string to represent which column to group data by}

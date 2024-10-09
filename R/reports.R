@@ -1,11 +1,9 @@
 
-port_to_perf_summary <- function(p) {
-  if (is.null(p$benchmark)) {
-    bench <- NULL
-  } else {
+port_to_perf_summary <- function(p, bench = NULL, rf = NULL) {
+  if (is.null(bench) && !is.null(p$benchmark)) {
     bench <- p$benchmark$port_ret
   }
-  if (is.null(p$rf)) {
+  if (is_null_dim(p$rf)) {
     rf <- rf_from_const(
       zoo::index(p$asset_ret[1]),
       zoo::index(p$asset_ret[nrow(p$asset_ret)]),
@@ -61,7 +59,7 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
   sharpe <- calc_sharpe_ratio(combo, rf, "days")
   sortino <- calc_sortino_ratio(combo, rf, "days")
   recov <- geo_ret / -max_dd
-  if (!is.null(bench)) {
+  if (is.null(bench)) {
     x <- rbind(geo_ret, vol, down_vol, max_dd, sharpe, sortino, recov)
     xdf <- data.frame(
       Metric = c("Geometric Return", "Volatility", "Downside Vol",
@@ -69,6 +67,8 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
       x,
       row.names = NULL
     )
+    colnames(xdf) <- c("Metric", colnames(asset))
+    return(xdf)
   } else {
     a_cov <- list()
     for (i in 1:ncol(bench)) {
@@ -83,7 +83,60 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
                                                       (ncol(asset) + 1)]
     act_ret <- c(geo_ret[1:ncol(asset)] - geo_ret[(ncol(asset)+1)],
       bench_pad_na)
+    n_bench <- ncol(bench)
+    if (n_bench > 1) {
+      for (i in 2:n_bench) {
+        te <- rbind(te, c(sqrt(diag(a_cov[[i]])), bench_pad_na))
+        up_capt <- rbind(
+          up_capt,
+          c(calc_up_capture(asset, bench[, i]),bench_pad_na)
+        )
+        down_capt <- rbind(
+          down_capt,
+          c(calc_down_capture(asset, bench[, i]), bench_pad_na)
+        )
+        xbeta <- rbind(
+          xbeta,
+          hist_cov[, (ncol(asset) + i)] /
+            hist_cov[(ncol(asset) + i), (ncol(asset) + i)]
+        )
+        act_ret <- rbind(
+          act_ret,
+          c(geo_ret[1:ncol(asset)] - geo_ret[(ncol(asset)+i)], bench_pad_na)
+        )
+      }
+    }
+    x <- rbind(geo_ret, act_ret, vol, down_vol, max_dd, sharpe, sortino, recov,
+               te, xbeta, act_ret / te, up_capt, down_capt)
+    metric <- c(
+      "Geometric Return",
+      paste0("Active Return: Bench ", 1:n_bench),
+      "Volatility",
+      "Downside Vol",
+      "Worst Drawdown",
+      "Sharpe Ratio",
+      "Sortino Ratio",
+      "Recovery",
+      paste0("Tracking Error: Bench ", 1:n_bench),
+      paste0("Beta: Bench ", 1:n_bench),
+      paste0("Info Ratio", 1:n_bench),
+      paste0("Up Capture", 1:n_bench),
+      paste0("Down Capture", 1:n_bench)
+    )
+    xdf <- data.frame(
+      Metric = metric,
+      x,
+      row.names = NULL
+    )
+    colnames(xdf) <- c("Metric", colnames(asset),
+                       paste0("Bench ", 1:n_bench, ": ", colnames(bench)))
+    return(xdf)
   }
+}
 
-
+viz_drawdowns <- function(x) {
+  dd <- calc_drawdown(x)
+  dat <- xts_to_tidy(dd)
+  ggplot(dat, aes(x = Date, y = value, color = name)) +
+    geom_line()
 }

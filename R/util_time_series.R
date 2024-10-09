@@ -101,7 +101,7 @@ na_price <- function(x) {
   rep(x[ind], times = diff(c(ind, length(x) + 1)))
 }
 
-# dataframe / xts conversion
+# dataframe / xts conversion ----
 
 #' @title Convert dataframe to xts
 #' @export
@@ -132,6 +132,14 @@ xts_to_dataframe <- function(x) {
 #' @export
 mat_to_xts <- function(x) {
   xts(x[, -1], as.Date(x[[1]]))
+}
+
+#' @title Convert xts to tidy (long) data.frame
+#' @param x xts
+#' @export
+xts_to_tidy <- function(x) {
+  xdf <- xts_to_dataframe(x)
+  tidyr::pivot_longer(xdf, -Date)
 }
 
 # combine xts ----
