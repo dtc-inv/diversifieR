@@ -13,7 +13,7 @@ dtc_name_match_ret <- function(dtc_name, ret) {
   # data
   if (all(is.na(ixd))) {
     ixm <- match(dtc_name[is.na(ixd)], colnames(ret$m))
-    if (all(ix.na(ixm))) {
+    if (all(is.na(ixm))) {
       warning("no returns found")
       return(NULL)
     }

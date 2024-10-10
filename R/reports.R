@@ -134,9 +134,70 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
   }
 }
 
+dtc_col <- function() {
+  c(rgb(0, 48, 87, maxColorValue = 255),     # navy blue
+    rgb(204, 159, 38, maxColorValue = 255),  # gold
+    rgb(197, 82, 101, maxColorValue = 255),  # berry
+    rgb(113, 158, 139, maxColorValue = 255), # pine
+    rgb(124, 126, 127, maxColorValue = 255), # deep charcoal
+    rgb(124, 94, 119, maxColorValue = 255),  # amethyst
+    rgb(222, 137, 88, maxColorValue = 255),  # orange
+    rgb(141, 169, 180, maxColorValue = 255), # ocean
+    rgb(192, 109, 89, maxColorValue = 255))  # terra cotta
+}
+
+set_plot_col <- function(n) {
+  col <- dtc_col()
+  if (n > length(col)) {
+    col <- c(col, 1:(n - length(col)))
+  }
+  return(col)
+}
+
 viz_drawdowns <- function(x) {
   dd <- calc_drawdown(x)
   dat <- xts_to_tidy(dd)
+  col <- set_plot_col(ncol(x))
   ggplot(dat, aes(x = Date, y = value, color = name)) +
-    geom_line()
+    geom_line() + 
+    scale_color_manual(values = col) +
+    scale_y_continuous(labels = scales::percent) +
+    ylab("") +
+    labs(color = "", title = "Drawdowns") +
+    theme_light()
+}
+
+viz_wealth_index <- function(x, init_val = 100) {
+  wi <- ret_to_price(x) * init_val
+  dat <- xts_to_tidy(wi)
+  col <- set_plot_col(ncol(x))
+  ggplot(dat, aes(x = Date, y = value, color = name)) +
+    geom_line() + 
+    scale_color_manual(values = col) +
+    scale_y_continuous(labels = scales::number) +
+    ylab("") +
+    labs(color = "", title = "Cumulative Wealth") +
+    theme_light()
+}
+
+viz_roll_vol <- function(x, n, freq) {
+  x <- xts_to_dataframe(x)
+  rv <- slider::slide(x[, -1], ~apply(.x, 2, sd), .complete = TRUE, 
+                      .before = (n-1))
+  rv <- do.call('rbind', rv) * sqrt(freq_to_scaler(freq))
+  rv <- data.frame(Date = x$Date[(n):nrow(x)], rv)
+  colnames(rv) <- colnames(x)
+  dat <- pivot_longer(rv, cols = -Date)
+  ggplot(dat, aes(x = Date, y = value, color = name)) +
+    geom_line() + 
+    scale_color_manual(values = col) +
+    scale_y_continuous(labels = scales::percent) +
+    ylab("") +
+    labs(color = "", 
+         title = paste0("Rolling ", n, " ", freq, " Volatility")) +
+    theme_light()
+}
+
+viz_roll_te <- function(x, b, n, freq) {
+  
 }

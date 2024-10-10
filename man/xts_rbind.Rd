@@ -7,9 +7,9 @@
 xts_rbind(new, old)
 }
 \arguments{
-\item{new}{newer time-series}
+\item{new}{older time-series}
 
-\item{old}{older time-series}
+\item{old}{newer time-series}
 }
 \description{
 Row bind xts

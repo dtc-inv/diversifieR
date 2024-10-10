@@ -145,8 +145,8 @@ xts_to_tidy <- function(x) {
 # combine xts ----
 
 #' @title Row bind xts
-#' @param old older time-series
-#' @param new newer time-series
+#' @param new older time-series
+#' @param old newer time-series
 #' @details
 #' For any overlapping dates, the old xts will be overwritten by the new xts.
 #' The function will align the intersection of column names for the old and new
@@ -185,6 +185,25 @@ xts_cbind <- function(x, y) {
   combo <- cbind(x, y)
   colnames(combo) <- col_nms
   return(combo)
+}
+
+
+#' @title Column bind the intersection of two xts objects
+#' @param x xts object
+#' @param y xts object
+#' @details
+#' The first common start date and last common end date are used to find the
+#' interection of returns. The returns are also cleaned for missing columns.
+#' See rm_na_col for more info.
+#' @return list containing intersection of returns and columns that were removed
+#'   due to too many missing values (if any)
+xts_cbind_inter <- function(x, y) {
+  combo <- xts_cbind(x, y)
+  sd <- first_comm_start(combo)
+  ed <- last_comm_end(combo)
+  combo <- cut_time(combo, sd, ed)
+  res <- rm_na_col(combo)
+  return(res)
 }
 
 # price to ret conversion ----

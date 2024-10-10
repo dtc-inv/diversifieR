@@ -12,5 +12,5 @@ License: GNU GPLv3
 Encoding: UTF-8
 LazyData: true
 Depends: xts, lubridate, timeDate, arrow, dplyr, tidyr, R6, httr, jsonlite, 
-    xml2, XML, rvest, curl
+    xml2, XML, rvest, curl, ggplot2
 RoxygenNote: 7.3.2

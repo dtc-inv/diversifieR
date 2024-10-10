@@ -114,7 +114,7 @@ calc_drawdown <- function(x) {
 
   x <- na.omit(x)
   dd <- apply(x, 2, .drawdown)
-  xts(dd, as.Date(zoo::index(rownames(dd)), origin = '1970-01-01'))
+  xts(dd, as.Date(rownames(dd), origin = '1970-01-01'))
 }
 
 
