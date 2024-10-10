@@ -198,6 +198,3 @@ viz_roll_vol <- function(x, n, freq) {
     theme_light()
 }
 
-viz_roll_te <- function(x, b, n, freq) {
-  
-}
