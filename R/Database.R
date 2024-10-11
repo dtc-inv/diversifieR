@@ -666,6 +666,26 @@ Database <- R6::R6Class(
       write_feather(df, self$bucket$path('returns/daily/ctf.arrow'))
     },
 
+    #' @description Pull returns from AWS into xts object
+    #' @param ids tickers, cusips, isins, etc
+    pull_ret = function(ids) {
+      if (is.null(self$ret)) {
+        self$read_all_ret()
+      }
+      ix <- id_match_msl(ids, self$msl)
+      if (all(is.na(ix))) {
+        warning('no ids found')
+        return(NULL)
+      }
+      if (any(is.na(ix))) {
+        warning(paste0(ids[is.na(ix)], ' not found'))
+        ix <- na.omit(ix)
+      }
+      dtc_name <- self$msl$DTCName[ix]
+      res <- dtc_name_match_ret(dtc_name, self$ret)
+      return(res$r)
+    },
+    
     ## QUAL DATA ----
 
     #' @description

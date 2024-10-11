@@ -649,3 +649,4 @@ download_fred <- function(series_id, fred_api) {
   colnames(x) <- series_id
   return(x)
 }
+
