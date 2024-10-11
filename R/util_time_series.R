@@ -197,6 +197,7 @@ xts_cbind <- function(x, y) {
 #' See rm_na_col for more info.
 #' @return list containing intersection of returns and columns that were removed
 #'   due to too many missing values (if any)
+#' @export
 xts_cbind_inter <- function(x, y) {
   combo <- xts_cbind(x, y)
   sd <- first_comm_start(combo)

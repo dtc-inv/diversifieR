@@ -132,6 +132,7 @@ of the P/E for each stock.
 \item \href{#method-Database-update_fs_exchange_ret_daily}{\code{Database$update_fs_exchange_ret_daily()}}
 \item \href{#method-Database-update_ctf_ret_monthly}{\code{Database$update_ctf_ret_monthly()}}
 \item \href{#method-Database-update_ctf_ret_daily}{\code{Database$update_ctf_ret_daily()}}
+\item \href{#method-Database-pull_ret}{\code{Database$pull_ret()}}
 \item \href{#method-Database-download_factset_sector_country}{\code{Database$download_factset_sector_country()}}
 \item \href{#method-Database-update_fs_fina_most_recent}{\code{Database$update_fs_fina_most_recent()}}
 \item \href{#method-Database-update_fs_fina_quarterly}{\code{Database$update_fs_fina_quarterly()}}
@@ -531,6 +532,23 @@ Update CTF and SMA Returns daily
 
 \item{\code{add_row}}{TRUE = add row to existing file of returns, FALSE =
 overwrite and save only new returns}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Database-pull_ret"></a>}}
+\if{latex}{\out{\hypertarget{method-Database-pull_ret}{}}}
+\subsection{Method \code{pull_ret()}}{
+Pull returns from AWS into xts object
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Database$pull_ret(ids)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{ids}}{tickers, cusips, isins, etc}
 }
 \if{html}{\out{</div>}}
 }

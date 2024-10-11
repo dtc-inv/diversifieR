@@ -688,3 +688,25 @@ summary_stats <- function(fund, bench, rf, period) {
   colnames(df) <- c(colnames(fund), colnames(bench))
   return(df)
 }
+
+#' @export
+roll_beta <- function(x, b, rf, n) {
+  if (ncol(b) > 1) {
+    b <- b[, 1]
+    warning('more than one benchmark entered, only taking first column')
+  }
+  if (ncol(rf) > 1) {
+    rf <- rf[, 1]
+    warning('more than one rf entered, only taking first column')
+  }
+  combo <- clean_asset_bench_rf(x, b, rf)
+  x_er <- combo$x - combo$rf[, rep(1, ncol(combo$x))]
+  b_er <- combo$b - combo$rf
+  obs <- xts_cbind(x_er, b_er)
+  obs <- xts_to_dataframe(obs)
+  rcov <- slider::slide(obs[, -1], ~cov(.x), .before = n-1, .complete = TRUE)
+  xbeta <- lapply(rcov, \(x) {x[, ncol(x)] / x[ncol(x), ncol(x)]})
+  xbeta <- do.call('rbind', xbeta)
+  xts(xbeta, obs$Date[n:nrow(obs)])
+}
+  

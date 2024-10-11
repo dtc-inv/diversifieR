@@ -134,6 +134,9 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
   }
 }
 
+#' @title Helper function to set color palette
+#' @return list of colors
+#' @export
 dtc_col <- function() {
   c(rgb(0, 48, 87, maxColorValue = 255),     # navy blue
     rgb(204, 159, 38, maxColorValue = 255),  # gold
@@ -146,6 +149,12 @@ dtc_col <- function() {
     rgb(192, 109, 89, maxColorValue = 255))  # terra cotta
 }
 
+#' @title Set n number of assets to plot to DTC color palette
+#' @param n number of assets / items to plot
+#' @return list of colors
+#' @details if the number of assets exceed the number of colors in the DTC
+#'   palette, 1:n colors will be generated based on numbers
+#' @export
 set_plot_col <- function(n) {
   col <- dtc_col()
   if (n > length(col)) {
@@ -154,6 +163,9 @@ set_plot_col <- function(n) {
   return(col)
 }
 
+#' @title Plot Drawdowns
+#' @param x xts object with time-series of returns
+#' @export
 viz_drawdowns <- function(x) {
   dd <- calc_drawdown(x)
   dat <- xts_to_tidy(dd)
@@ -167,6 +179,10 @@ viz_drawdowns <- function(x) {
     theme_light()
 }
 
+#' @title Plot Cumulative Returns
+#' @param x xts object with time-series of returns
+#' @param init_val initial starting value of wealth
+#' @export
 viz_wealth_index <- function(x, init_val = 100) {
   wi <- ret_to_price(x) * init_val
   dat <- xts_to_tidy(wi)
@@ -180,7 +196,13 @@ viz_wealth_index <- function(x, init_val = 100) {
     theme_light()
 }
 
+#' @title Plot Rolling Volatility
+#' @param x xts object with time-series of returns
+#' @param n number of periods for rolling window
+#' @param freq string to represent frequency for scaling
+#' @export
 viz_roll_vol <- function(x, n, freq) {
+  col <- set_plot_col(ncol(x))
   x <- xts_to_dataframe(x)
   rv <- slider::slide(x[, -1], ~apply(.x, 2, sd), .complete = TRUE, 
                       .before = (n-1))
@@ -198,3 +220,73 @@ viz_roll_vol <- function(x, n, freq) {
     theme_light()
 }
 
+#' @title Plot Rolling Beta
+#' @param x xts object of assets to calculate beta for
+#' @param b xts object of one benchmark to calculate beta to
+#' @param rf xts object of risk-free rate
+#' @param n number of rolling periods to use in the calculation
+#' @param freq string to represent frequency for chart title
+#' @export
+viz_roll_beta <- function(x, b, rf, n, freq) {
+  if (ncol(b) > 1) {
+    b <- b[, 1]
+    warning('more than one benchmark column provided, taking first column')
+  }
+  if (ncol(rf) > 1) {
+    rf <- rf[, 1]
+    warning('more than one rf column provided, taking first column')
+  }
+  xbeta <- roll_beta(x, b, rf, n)
+  dat <- xts_to_tidy(xbeta)
+  col <- set_plot_col(ncol(xbeta))
+  ggplot(dat, aes(x = Date, y = value, color = name)) +
+    geom_line() + 
+    scale_color_manual(values = col) +
+    scale_y_continuous(labels = scales::number) +
+    ylab("") +
+    labs(color = "", 
+         title = paste0("Rolling ", n, " ", freq, " Beta to ", colnames(b))) +
+    theme_light()
+}
+
+#' @title Handle combing and cleaning asset, rf, and benchmarks
+#' @param x xts object of asset(s)
+#' @param b xts object of benchmark(s)
+#' @param rf optional xts object of risk-free
+#' @details
+#'   Utility function to handle common task of needing to line up asset, bench,
+#'   and rf returns. Function will truncate all time-series based on common
+#'   start and end dates, and will clean returns and remove missing columns if
+#'   NAs exceed 5% threshold. 
+#' @export
+clean_asset_bench_rf <- function(x, b, rf = NULL) {
+  if (!is.null(rf)) {
+    combo <- xts_cbind_inter(x, rf)
+    if (!is.null(colnames(combo$miss_ret))) {
+      if (colnames(combo$miss_ret) == colnames(rf)) {
+        stop('rf is missing')
+      }
+    }
+  }
+  combo <- xts_cbind_inter(combo$ret, b)
+  if (!is.null(colnames(combo$miss_ret))) {
+    if (colnames(combo$miss_ret) == colnames(b)) {
+      stop('benchmark is missing')
+    }
+  }
+  res <- list()
+  if (!is.null(rf)) {
+    res$rf <- combo$ret[, colnames(combo$ret) %in% colnames(rf)]
+  } else {
+    res$rf <- NULL
+  }
+  res$b <- combo$ret[, colnames(combo$ret) %in% colnames(b)]
+  res$x <- combo$ret[, colnames(combo$ret) %in% colnames(x)]
+  return(res)
+}
+
+#' @export
+clean_ret_const <- function(x, a = 0) {
+  x[is.na(x)] <- a
+  return(x)
+}
