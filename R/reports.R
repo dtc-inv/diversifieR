@@ -249,6 +249,34 @@ viz_roll_beta <- function(x, b, rf, n, freq) {
     theme_light()
 }
 
+
+viz_trade_off <- function(x, b = NULL, 
+                          risk_type = c("vol", "down-vol", "drawdown"),
+                          period = "days") {
+  if (!is.null(b)) {
+    res <- clean_asset_bench_rf(x, b)
+    x <- res$x - res$b[, rep(1, ncol(x))]
+  }
+  if (risk_type == "vol") {
+    risk <- calc_vol(x, period)
+  } else if (risk_type == "down-vol") {
+    risk <- calc_down_vol(x, period)
+  } else if (risk_type == "drawdown") {
+    risk <- abs(calc_max_drawdown(x))
+  } else {
+    stop("risk_type must be vol, down-vol, or drawdown")
+  }
+  ret <- calc_geo_ret(x, period)
+  dat <- data.frame(Asset = colnames(x), Return = ret, Risk = risk)
+  ggplot(dat, aes(x = Risk, y = Return, col = Asset, label = Asset)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel() +
+    scale_x_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = scales::percent) +
+    theme_light() +
+    theme(legend.position = "none")
+}
+
 #' @title Handle combing and cleaning asset, rf, and benchmarks
 #' @param x xts object of asset(s)
 #' @param b xts object of benchmark(s)
@@ -260,20 +288,21 @@ viz_roll_beta <- function(x, b, rf, n, freq) {
 #'   NAs exceed 5% threshold. 
 #' @export
 clean_asset_bench_rf <- function(x, b, rf = NULL) {
+  combo <- xts_cbind_inter(x, b)
+  if (!is.null(colnames(combo$miss_ret))) {
+    if (colnames(combo$miss_ret) == colnames(b)) {
+      stop('benchmark is missing')
+    }
+  }
   if (!is.null(rf)) {
-    combo <- xts_cbind_inter(x, rf)
+    combo <- xts_cbind_inter(combo$ret, rf)
     if (!is.null(colnames(combo$miss_ret))) {
       if (colnames(combo$miss_ret) == colnames(rf)) {
         stop('rf is missing')
       }
     }
   }
-  combo <- xts_cbind_inter(combo$ret, b)
-  if (!is.null(colnames(combo$miss_ret))) {
-    if (colnames(combo$miss_ret) == colnames(b)) {
-      stop('benchmark is missing')
-    }
-  }
+  
   res <- list()
   if (!is.null(rf)) {
     res$rf <- combo$ret[, colnames(combo$ret) %in% colnames(rf)]
