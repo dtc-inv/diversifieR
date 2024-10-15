@@ -250,9 +250,18 @@ viz_roll_beta <- function(x, b, rf, n, freq) {
 }
 
 
+#' @title Plot Risk / Reward Trade-offs
+#' @param x xts of asset returns
+#' @param b optional xts of benchmark returns for relative trade-off
+#' @param risk_type character to specify vol, down-vol, or drawdown, if b
+#'   is entered then TE, down-TE, and underperformance are calculated
+#' @param period character representing frequency to annualized vol
+#' @export
 viz_trade_off <- function(x, b = NULL, 
                           risk_type = c("vol", "down-vol", "drawdown"),
                           period = "days") {
+  col <- set_plot_col(ncol(x))
+  risk_type <- risk_type[1]
   if (!is.null(b)) {
     res <- clean_asset_bench_rf(x, b)
     x <- res$x - res$b[, rep(1, ncol(x))]
@@ -273,9 +282,20 @@ viz_trade_off <- function(x, b = NULL,
     ggrepel::geom_text_repel() +
     scale_x_continuous(labels = scales::percent) +
     scale_y_continuous(labels = scales::percent) +
+    scale_color_manual(values = col)
     theme_light() +
     theme(legend.position = "none")
 }
+
+
+viz_style <- function(x, b, roll = FALSE, freq = "days", n = 63) {
+  if (roll) {
+    
+  } else {
+    res <- te_min_qp(x, b)
+  }
+}
+
 
 #' @title Handle combing and cleaning asset, rf, and benchmarks
 #' @param x xts object of asset(s)
