@@ -633,7 +633,7 @@ Database <- R6::R6Class(
 
     #' @description
     #' Update CTF and SMA Returns daily
-    #' @param t_minus numeric for how many days back to go
+    #' @param t_minus numeric for how many months back to go
     #' @param add_row TRUE = add row to existing file of returns, FALSE =
     #'   overwrite and save only new returns
     update_ctf_ret_daily = function(t_minus = 1, add_row = TRUE) {
@@ -645,7 +645,7 @@ Database <- R6::R6Class(
         x <- try(download_fs_ctf_ret(
           d_id[i],
           self$api_keys,
-          paste0("-", t_minus),
+          t_minus,
           freq = "D"))
         if ('try-error' %in% class(x)) {
           rl[[i]] <- NULL

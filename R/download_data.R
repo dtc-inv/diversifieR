@@ -372,13 +372,15 @@ download_fs_mutual_fund_ret <- function(ids, api_keys, days_back) {
 download_fs_ctf_ret <- function(id, api_keys, t_minus = 5, freq = 'D') {
   username <- api_keys$fs$username
   password <- api_keys$fs$password
-  base_url <- 'https://api.factset.com/formula-api/v1/time-series?ids=$IDS&formulas='
+  base_url <- "https://api.factset.com/formula-api/v1/time-series?ids=$IDS&formulas="
   request <- paste0(
     base_url,
     'RA_RET(',
-    "\"",
+    '"',
     id,
-    "\",-",
+    '"',
+    ",",
+    "-",
     t_minus,
     "/0/0,0,", freq,
     ",FIVEDAY,USD,1)&flatten=Y"
