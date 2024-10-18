@@ -697,6 +697,20 @@ roll_beta <- function(x, b, rf, n) {
   xts(xbeta, obs$Date[n:nrow(obs)])
 }
 
+#' @export
+roll_r2 <- function(x, b, n) {
+  if (ncol(b) > 1) {
+    b <- b[, 1]
+    warning('more than one benchmark entered, only taking first column')
+  }
+  combo <- clean_asset_bench_rf(x, b)
+  obs <- xts_to_dataframe(xts_cbind(combo$x, combo$b))
+  rcor <- slider::slide(obs[, -1], ~cor(.x), .before = n-1, .complete = TRUE)
+  rcor <- lapply(rcor, \(x) {x[, nrow(x)]})
+  xcor <- do.call("rbind", rcor)
+  xts(xcor^2, obs$Date[n:nrow(obs)])
+}  
+
 #' @title Rolling returns
 #' @param x xts of returns
 #' @param n number of periods for rolling calc window
@@ -732,4 +746,27 @@ roll_vol <- function(x, n, b = NULL, period = "days") {
   xts(rv, zoo::index(x)[n:nrow(x)])
 }  
   
+
+#' @export
+roll_down_vol <- function(x, n, b = NULL, period = "days") {
+  if (!is.null(b)) {
+    x <- excess_ret(x, b)
+  }
+  obs <- xts_to_dataframe(x)[, -1]
+  rl <- slider::slide(obs, ~calc_down_vol(.x, period), .before = n - 1, 
+                      .complete = TRUE)
+  rv <- do.call("rbind", rl)
+  xts(rv, zoo::index(x)[n:nrow(x)])
+}
+
+roll_style <- function(x, b, n) {
+  combo <- clean_asset_bench_rf(x, b)
+  x <- xts_to_dataframe(combo$x)
+  b <- xts_to_dataframe(combo$b)
+  obs <- cbind(x[,-1], b[,-1])
+  r_sty <- slider::slide(obs, ~te_min_qp(.x[,1:ncol(x)], 
+                                         .x[, (ncol(x)+1):ncol(obs)]),
+                         .before = n-1, .complete = TRUE)
   
+}
+
