@@ -215,22 +215,13 @@ find_drawdowns <- function(x) {
 }
 
 
-#' @title Calculate excess return (a - b)
-#' @param a xts object to transform into excess return
+#' @title Calculate excess return (x - b)
+#' @param x xts object to transform into excess return
 #' @param b univariate xts object of benchmark or risk-free rate to subtract
-#'   from `a`
+#'   from `x`
 #' @export
-excess_ret <- function(a, b) {
-  if (ncol(b) > 1) {
-    stop('b must be univariate')
-  }
-  obs <- combine_xts(b, a)
-  a <- obs[, 2:ncol(obs)]
-  b <- obs[, 1]
-  for (i in 1:ncol(a)) {
-    a[, i] <- a[, i] - b
-  }
-  return(a)
+excess_ret <- function(x, b) {
+  x - b[, rep(1, ncol(x))]
 }
 
 
@@ -240,10 +231,14 @@ excess_ret <- function(a, b) {
 #' @return vector of geometric returns
 #' @export
 calc_geo_ret <- function(x, period) {
-
   a <- freq_to_scaler(period)
   obs <- nrow(x)
-  apply(x + 1, 2, prod)^(a / obs) - 1
+  r <- apply(x + 1, 2, prod)
+  if (obs > a) {
+    return(r^(a / obs) - 1)
+  } else {
+    return(r - 1)
+  }
 }
 
 
@@ -253,7 +248,6 @@ calc_geo_ret <- function(x, period) {
 #' @return vector of volatility
 #' @export
 calc_vol <- function(x, period) {
-
   a <- freq_to_scaler(period)
   apply(x, 2, sd) * sqrt(a)
 }
@@ -308,7 +302,6 @@ calc_down_vol <- function(x, period, mar = 0) {
 #' @return vector of Sortino Ratios
 #' @export
 calc_sortino_ratio <- function(x, rf, period, mar = 0) {
-
   x_geo <- calc_geo_ret(x, period)
   rf_geo <- calc_geo_ret(rf, period)
   x_vol <- calc_down_vol(x, period, mar)
@@ -323,7 +316,6 @@ calc_sortino_ratio <- function(x, rf, period, mar = 0) {
 #' @param mar sets place to sub-set up / down, default is `0`
 #' @export
 calc_batting_avg <- function(x, mar = 0) {
-
   x_up <- rep(NA, ncol(x))
   x_down <- x_up
   for (i in 1:ncol(x)) {
@@ -343,7 +335,6 @@ calc_batting_avg <- function(x, mar = 0) {
 #' @return vector of upside capture
 #' @export
 calc_up_capture <- function(mgr, bench, period, mar = 0) {
-
   mgr_up <- mgr[bench >= mar, ]
   bench_up <- bench[bench >= mar, ]
   mgr_geo <- colMeans(mgr_up)
@@ -361,7 +352,6 @@ calc_up_capture <- function(mgr, bench, period, mar = 0) {
 #' @return vector of downside capture
 #' @export
 calc_down_capture <- function(mgr, bench, period, mar = 0) {
-
   mgr_down <- mgr[bench < mar, ]
   bench_down <- bench[bench < mar, ]
   mgr_geo <- colMeans(mgr_down)
@@ -377,7 +367,6 @@ calc_down_capture <- function(mgr, bench, period, mar = 0) {
 #' @return vector of betas to benchmark
 #' @export
 calc_uni_beta <- function(mgr, bench, rf) {
-
   combo <- cbind(mgr, bench)
   er <- excess_ret(combo, rf)
   xcov <- cov(er)
@@ -389,7 +378,6 @@ calc_uni_beta <- function(mgr, bench, rf) {
 
 #' @export
 up_beta <- function(mgr, bench, rf, mar = 0) {
-
   is_up <- bench >= mar
   calc_uni_beta(mgr[is_up, ], bench[is_up, ], rf[is_up, ])
 }
@@ -397,7 +385,6 @@ up_beta <- function(mgr, bench, rf, mar = 0) {
 
 #' @export
 down_beta <- function(mgr, bench, rf, mar = 0) {
-
   is_down <- bench < mar
   calc_uni_beta(mgr[is_down, ], bench[is_down, ], rf[is_down, ])
 }
@@ -424,7 +411,6 @@ cov_ewma <- function(ret, lambda = NULL) {
 
 #' @export
 absorp_ratio <- function(xcor, n_pc = NULL) {
-
   if (is.null(n_pc)) {
     n_pc <- ceiling(nrow(xcor) / 5)
   }
@@ -435,7 +421,6 @@ absorp_ratio <- function(xcor, n_pc = NULL) {
 
 #' @export
 risk_par_wgt <- function(ret, sigma) {
-
   # F(y), system of nonlinear equations
   eval_f <- function(x, sigma, lambda) {
     x <- as.vector(x)
@@ -689,6 +674,8 @@ summary_stats <- function(fund, bench, rf, period) {
   return(df)
 }
 
+# roll ----
+
 #' @export
 roll_beta <- function(x, b, rf, n) {
   if (ncol(b) > 1) {
@@ -709,4 +696,40 @@ roll_beta <- function(x, b, rf, n) {
   xbeta <- do.call('rbind', xbeta)
   xts(xbeta, obs$Date[n:nrow(obs)])
 }
+
+#' @title Rolling returns
+#' @param x xts of returns
+#' @param n number of periods for rolling calc window
+#' @param b optional benchmark to transform to active return
+#' @param period frequency, default is days
+#' @export
+roll_ret <- function(x, n, b = NULL, period = "days") {
+  if (!is.null(b)) {
+    x <- excess_ret(x, b)
+  }
+  obs <- xts_to_dataframe(x)[, -1]
+  if (n > freq_to_scaler(period)) {
+    rl <- slider::slide(obs, ~calc_geo_ret(.x, period), .before = n-1, 
+                        .complete = TRUE) 
+  } else {
+    rl <- slider::slide(obs, ~apply(.x+1, 2, prod)-1, .before = n-1, 
+                        .complete = TRUE)  
+  }
+  rr <- do.call("rbind", rl)
+  xts(rr, zoo::index(x)[n:nrow(x)])
+}
+
+
+#' @export
+roll_vol <- function(x, n, b = NULL, period = "days") {
+  if (!is.null(b)) {
+    x <- excess_ret(x, b)
+  }
+  obs <- xts_to_dataframe(x)[, -1]
+  rl <- slider::slide(obs, ~calc_vol(.x, period), .before = n - 1, 
+                      .complete = TRUE)
+  rv <- do.call("rbind", rl)
+  xts(rv, zoo::index(x)[n:nrow(x)])
+}  
+  
   

@@ -2,16 +2,16 @@
 % Please edit documentation in R/analyze_time_series.R
 \name{excess_ret}
 \alias{excess_ret}
-\title{Calculate excess return (a - b)}
+\title{Calculate excess return (x - b)}
 \usage{
-excess_ret(a, b)
+excess_ret(x, b)
 }
 \arguments{
-\item{a}{xts object to transform into excess return}
+\item{x}{xts object to transform into excess return}
 
 \item{b}{univariate xts object of benchmark or risk-free rate to subtract
-from `a`}
+from `x`}
 }
 \description{
-Calculate excess return (a - b)
+Calculate excess return (x - b)
 }

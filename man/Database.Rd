@@ -528,7 +528,7 @@ Update CTF and SMA Returns daily
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{t_minus}}{numeric for how many days back to go}
+\item{\code{t_minus}}{numeric for how many months back to go}
 
 \item{\code{add_row}}{TRUE = add row to existing file of returns, FALSE =
 overwrite and save only new returns}
