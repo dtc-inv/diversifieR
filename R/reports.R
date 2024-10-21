@@ -171,7 +171,7 @@ viz_drawdowns <- function(x) {
   dat <- xts_to_tidy(dd)
   col <- set_plot_col(ncol(x))
   ggplot(dat, aes(x = Date, y = value, color = name)) +
-    geom_line() + 
+    geom_line() +
     scale_color_manual(values = col) +
     scale_y_continuous(labels = scales::percent) +
     ylab("") +
@@ -188,7 +188,7 @@ viz_wealth_index <- function(x, init_val = 100) {
   dat <- xts_to_tidy(wi)
   col <- set_plot_col(ncol(x))
   ggplot(dat, aes(x = Date, y = value, color = name)) +
-    geom_line() + 
+    geom_line() +
     scale_color_manual(values = col) +
     scale_y_continuous(labels = scales::number) +
     ylab("") +
@@ -204,18 +204,18 @@ viz_wealth_index <- function(x, init_val = 100) {
 viz_roll_vol <- function(x, n, freq) {
   col <- set_plot_col(ncol(x))
   x <- xts_to_dataframe(x)
-  rv <- slider::slide(x[, -1], ~apply(.x, 2, sd), .complete = TRUE, 
+  rv <- slider::slide(x[, -1], ~apply(.x, 2, sd), .complete = TRUE,
                       .before = (n-1))
   rv <- do.call('rbind', rv) * sqrt(freq_to_scaler(freq))
   rv <- data.frame(Date = x$Date[(n):nrow(x)], rv)
   colnames(rv) <- colnames(x)
   dat <- pivot_longer(rv, cols = -Date)
   ggplot(dat, aes(x = Date, y = value, color = name)) +
-    geom_line() + 
+    geom_line() +
     scale_color_manual(values = col) +
     scale_y_continuous(labels = scales::percent) +
     ylab("") +
-    labs(color = "", 
+    labs(color = "",
          title = paste0("Rolling ", n, " ", freq, " Volatility")) +
     theme_light()
 }
@@ -240,11 +240,11 @@ viz_roll_beta <- function(x, b, rf, n, freq) {
   dat <- xts_to_tidy(xbeta)
   col <- set_plot_col(ncol(xbeta))
   ggplot(dat, aes(x = Date, y = value, color = name)) +
-    geom_line() + 
+    geom_line() +
     scale_color_manual(values = col) +
     scale_y_continuous(labels = scales::number) +
     ylab("") +
-    labs(color = "", 
+    labs(color = "",
          title = paste0("Rolling ", n, " ", freq, " Beta to ", colnames(b))) +
     theme_light()
 }
@@ -257,7 +257,7 @@ viz_roll_beta <- function(x, b, rf, n, freq) {
 #'   is entered then TE, down-TE, and underperformance are calculated
 #' @param period character representing frequency to annualized vol
 #' @export
-viz_trade_off <- function(x, b = NULL, 
+viz_trade_off <- function(x, b = NULL,
                           risk_type = c("vol", "down-vol", "drawdown"),
                           period = "days") {
   col <- set_plot_col(ncol(x))
@@ -290,7 +290,7 @@ viz_trade_off <- function(x, b = NULL,
 
 viz_style <- function(x, b, roll = FALSE, freq = "days", n = 63) {
   if (roll) {
-    
+
   } else {
     res <- te_min_qp(x, b)
   }
@@ -305,7 +305,7 @@ viz_style <- function(x, b, roll = FALSE, freq = "days", n = 63) {
 #'   Utility function to handle common task of needing to line up asset, bench,
 #'   and rf returns. Function will truncate all time-series based on common
 #'   start and end dates, and will clean returns and remove missing columns if
-#'   NAs exceed 5% threshold. 
+#'   NAs exceed 5% threshold.
 #' @export
 clean_asset_bench_rf <- function(x, b, rf = NULL) {
   combo <- xts_cbind_inter(x, b)
@@ -322,7 +322,7 @@ clean_asset_bench_rf <- function(x, b, rf = NULL) {
       }
     }
   }
-  
+
   res <- list()
   if (!is.null(rf)) {
     res$rf <- combo$ret[, colnames(combo$ret) %in% colnames(rf)]
@@ -339,3 +339,47 @@ clean_ret_const <- function(x, a = 0) {
   x[is.na(x)] <- a
   return(x)
 }
+
+#' @export
+run_cluster <- function(ret, k_group) {
+
+  clv_res <- ClustVarLV::CLV(ret, method = 2)
+  group_res <- summary(clv_res, k_group)
+  group_nm <- rownames(group_res$groups[[1]])
+  if (k_group > 1) {
+    for (i in 2:k_group) {
+      group_nm <- c(group_nm, rownames(group_res$groups[[i]]))
+    }
+  }
+  p <- psych::pca(ret[, group_nm], k_group)
+  p2 <- psych::pca(ret, k_group)
+  group_df <- data.frame(Manager = colnames(ret),
+                         Group = ClustVarLV::get_partition(clv_res, k_group),
+                         P1 = p2$loadings[, 1],
+                         P2 = p2$loadings[, 2])
+  group_df$Group <- factor(group_df$Group, unique(group_df$Group))
+  g_biplot <- ggplot(group_df, aes(x = P2, y = P1, color = Group, label = Manager)) +
+    geom_point() +
+    geom_segment(aes(x = 0, y = 0, xend = P2, yend = P1)) +
+    ggrepel::geom_text_repel(size = 3) +
+    xlab('Component 2 Loading') + ylab('Component 1 Loading') +
+    theme(legend.position = 'none')
+  p_loadings <- data.frame(Manager = rownames(p$loadings), p$loadings[,])
+  p_load_group <- merge(p_loadings, group_df[, c('Manager', 'Group')])
+  plotdf <- tidyr::pivot_longer(p_load_group, -one_of('Manager', 'Group'))
+  plotdf$Group <- factor(plotdf$Group, unique(plotdf$Group))
+  plotdf$Manager <- factor(plotdf$Manager, unique(plotdf$Manager))
+  plotdf$name <- factor(plotdf$name, unique(plotdf$name))
+  plotdf <- plotdf[order(plotdf$Group, decreasing = TRUE), ]
+  g_load <- ggplot(plotdf, aes(x = Manager, y = value, fill = Group)) +
+    scale_x_discrete(limits = unique(plotdf$Manager)) +
+    geom_bar(stat = 'identity', position = 'dodge') +
+    coord_flip() +
+    facet_wrap(. ~ name) +
+    theme(legend.position = 'none')
+  res <- list()
+  res$biplot <- g_biplot
+  res$loadings <- g_load
+  return(res)
+}
+

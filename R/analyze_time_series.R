@@ -1,3 +1,5 @@
+# port ----
+
 #' @title Calculate Volatility or TE Weights
 #' @param x vector of weights corresponding to `cov_mat`
 #' @param cov_mat covariance matrix
@@ -105,6 +107,77 @@ risk_cluster_wgt <- function(hc, vol, k = 2) {
     (matrix(1, ncol = length(hc$order), nrow = 1) %*% cov_inv %*% mu_vec)[1]
 }
 
+#' @title Calculate Risk Parity Weights
+#' @param ret xts of returns
+#' @export
+risk_par_wgt <- function(ret) {
+  sigma <- cov(ret)
+  # F(y), system of nonlinear equations
+  eval_f <- function(x, sigma, lamda) {
+    x <- as.vector(x)
+    x <- x[1:nrow(sigma)]
+    f0 <- matrix(nrow = (nrow(sigma) + 1), ncol = 1)
+    f0[1:nrow(sigma), 1] <- (sigma %*% x) - (lamda * 1 / x)
+    f0[(nrow(sigma) + 1), 1] <- sum(x) - 1
+    return(f0)
+  }
+  # Jacobian matrix of F(y)
+  jacob_f <- function(x, sigma, lamda) {
+    x <- as.vector(x)
+    x <- x[1:nrow(sigma)]
+    g <- matrix(nrow = (nrow(sigma) + 1), ncol = (ncol(sigma) + 1))
+    g[1:nrow(sigma), 1:ncol(sigma)] <- sigma + as.vector(lamda) *
+      diag(1 / x^2)
+    g[1:nrow(sigma), (ncol(sigma) + 1)] <- 1 / x
+    g[(nrow(sigma) + 1), 1:ncol(sigma)] <- rep(1, ncol(sigma))
+    g[(nrow(sigma) + 1), (ncol(sigma) + 1)] <- 0
+    return(g)
+  }
+  # set stopping points for max iterations if no solution
+  # and tolerance for solution
+  max_iter <- 100
+  tol <- 1e-6
+  # establish list for ERP weights to go into and set
+  # number of assets
+  n_assets <- ncol(ret)
+  n_obs <- nrow(ret)
+  for(i in 1:max_iter){
+    if (i == 1){
+      # 1/N first weight guess
+      next_x <- c(rep(1/n_assets, n_assets), 1)
+      lamda <- t(next_x[1:n_assets]) %*% sigma %*%
+        next_x[1:n_assets] / n_assets
+    }
+    else{
+      j_inv <- solve(jacob_f(next_x, sigma, lamda))
+      f_mat <- eval_f(next_x, sigma, lamda)
+      ans <- next_x - j_inv %*% f_mat
+      if(norm(next_x - ans) <= tol){
+        break
+      }
+      next_x <- ans
+      lamda <- t(next_x[1:n_assets,]) %*% sigma %*%
+        next_x[1:n_assets,] / n_assets
+    }
+  }
+  return(ans[1:n_assets])
+}
+
+#' @title Absorption Ratio
+#' @param xcor correlation matrix
+#' @param n_pc number of PCs for calculation, see details
+#' @details From Kritzman, et al (2010), sum(1:n_pc) / sum(all pcs)
+#' @export
+absorp_ratio <- function(xcor, n_pc = NULL) {
+  if (is.null(n_pc)) {
+    n_pc <- ceiling(nrow(xcor) / 5)
+  }
+  eig_res <- eigen(xcor)
+  sum(eig_res$values[1:2]) / sum(eig_res$values)
+}
+
+
+# MPT calcs ----
 
 #' @title Calculate Peak to Trough Drawdowns
 #' @param x xts object
@@ -147,7 +220,6 @@ calc_max_drawdown <- function(x) {
 #'    TotalDays
 #' @export
 find_drawdowns <- function(x) {
-
   if (ncol(x) > 1) {
     warning('x needs to be univariate, taking the first column')
     x <- x[, 1]
@@ -166,7 +238,7 @@ find_drawdowns <- function(x) {
   if (length(end_date) == length(start_date)) {
     dd_date <- data.frame(StartDate = start_date,
                           EndDate = c(end_date[2:length(end_date)],
-                                      start_date[length(start_date)]))
+                                      dd$Date[nrow(dd)]))
   } else {
     dd_date <- data.frame(StartDate = start_date,
                           EndDate = end_date[2:length(end_date)])
@@ -185,7 +257,6 @@ find_drawdowns <- function(x) {
     }
     return(df)
   }
-
   # create unique list of drawdowns
   dd_list <- mapply(.trunc_df,
                     df = list(dd[, 1:2]),
@@ -263,7 +334,6 @@ calc_vol <- function(x, period) {
 #' @return vector of Sharpe Ratios
 #' @export
 calc_sharpe_ratio <- function(x, rf, period) {
-
   x_geo <- calc_geo_ret(x, period)
   rf_geo <- calc_geo_ret(rf, period)
   x_vol <- calc_vol(x, period)
@@ -281,7 +351,6 @@ calc_sharpe_ratio <- function(x, rf, period) {
 #' @return vector of downside volatility
 #' @export
 calc_down_vol <- function(x, period, mar = 0) {
-
   a <- freq_to_scaler(period)
   res <- rep(NA, ncol(x))
   for (i in 1:ncol(x)) {
@@ -361,9 +430,9 @@ calc_down_capture <- function(mgr, bench, period, mar = 0) {
 
 
 #' @title Calculate Univariate Beta
-#' @param mgr xts manager(s)
-#' @param bench xts benchmark
-#' @param rf xts risk-free
+#' @param mgr xts of manager(s) returns
+#' @param bench xts of benchmark returns
+#' @param rf xts of risk-free returns
 #' @return vector of betas to benchmark
 #' @export
 calc_uni_beta <- function(mgr, bench, rf) {
@@ -375,14 +444,22 @@ calc_uni_beta <- function(mgr, bench, rf) {
 }
 
 
-
+#' @title Calculate Beta to benchmark when benchmark is up
+#' @param mgr xts of manager(s) returns
+#' @param bench xts of benchmark returns
+#' @param rf xts of risk-free returns
+#' @param mar numeric minimal acceptable return for up / down split
 #' @export
 up_beta <- function(mgr, bench, rf, mar = 0) {
   is_up <- bench >= mar
   calc_uni_beta(mgr[is_up, ], bench[is_up, ], rf[is_up, ])
 }
 
-
+#' @title Calculate Beta to benchmark when benchmark is down
+#' @param mgr xts of manager(s) returns
+#' @param bench xts of benchmark returns
+#' @param rf xts of risk-free returns
+#' @param mar numeric minimal acceptable return for up / down split
 #' @export
 down_beta <- function(mgr, bench, rf, mar = 0) {
   is_down <- bench < mar
@@ -390,11 +467,17 @@ down_beta <- function(mgr, bench, rf, mar = 0) {
 }
 
 
+#' @title Exponentially Weighted Moving Average Covariance
+#' @param ret xts of returns
+#' @param lamda numeric value to scale weighted average calc
+#' @note
+#' If lamda is left to default NULL it is calculated as 1 - 2 / a, where a
+#' = the periodicity scaler (e.g., months = 12)
 #' @export
-cov_ewma <- function(ret, lambda = NULL) {
-  if (is.null(lambda)) {
+cov_ewma <- function(ret, lamda = NULL) {
+  if (is.null(lamda)) {
     freq <- xts::periodicity(ret)
-    lambda <- 1 - 2 / (freq_to_scaler(freq$units))
+    lamda <- 1 - 2 / (freq_to_scaler(freq$units))
   }
   n_obs <- nrow(ret)
   cov_mat <- cov(ret)
@@ -403,79 +486,12 @@ cov_ewma <- function(ret, lambda = NULL) {
   for (obs in 1:n_obs) {
     r <- ret_centered[obs, ]
     rr <- t(r) %*% r
-    cov_mat <- (1 - lambda) / (1 + lambda^n_obs) * rr + lambda * cov_mat
+    cov_mat <- (1 - lamda) / (1 + lamda^n_obs) * rr + lamda * cov_mat
   }
   return(cov_mat)
 }
 
-
-#' @export
-absorp_ratio <- function(xcor, n_pc = NULL) {
-  if (is.null(n_pc)) {
-    n_pc <- ceiling(nrow(xcor) / 5)
-  }
-  eig_res <- eigen(xcor)
-  sum(eig_res$values[1:2]) / sum(eig_res$values)
-}
-
-
-#' @export
-risk_par_wgt <- function(ret, sigma) {
-  # F(y), system of nonlinear equations
-  eval_f <- function(x, sigma, lambda) {
-    x <- as.vector(x)
-    x <- x[1:nrow(sigma)]
-    f0 <- matrix(nrow = (nrow(sigma) + 1), ncol = 1)
-    f0[1:nrow(sigma), 1] <- (sigma %*% x) - (lambda * 1 / x)
-    f0[(nrow(sigma) + 1), 1] <- sum(x) - 1
-    return(f0)
-  }
-
-  # Jacobian matrix of F(y)
-  jacob_f <- function(x, sigma, lambda) {
-    x <- as.vector(x)
-    x <- x[1:nrow(sigma)]
-    g <- matrix(nrow = (nrow(sigma) + 1), ncol = (ncol(sigma) + 1))
-    g[1:nrow(sigma), 1:ncol(sigma)] <- sigma + as.vector(lambda) *
-      diag(1 / x^2)
-    g[1:nrow(sigma), (ncol(sigma) + 1)] <- 1 / x
-    g[(nrow(sigma) + 1), 1:ncol(sigma)] <- rep(1, ncol(sigma))
-    g[(nrow(sigma) + 1), (ncol(sigma) + 1)] <- 0
-    return(g)
-  }
-
-  # set stopping points for max iterations if no solution
-  # and tolerance for solution
-  max_iter <- 100
-  tol <- 1e-6
-
-  # establish list for ERP weights to go into and set
-  # number of assets
-
-  n_assets <- ncol(ret)
-  n_obs <- nrow(ret)
-  for(i in 1:max_iter){
-    if (i == 1){
-      # 1/N first weight guess
-      next_x <- c(rep(1/n_assets, n_assets), 1)
-      lambda <- t(next_x[1:n_assets]) %*% sigma %*%
-        next_x[1:n_assets] / n_assets
-    }
-    else{
-      j_inv <- solve(jacob_f(next_x, sigma, lambda))
-      f_mat <- eval_f(next_x, sigma, lambda)
-      ans <- next_x - j_inv %*% f_mat
-      if(norm(next_x - ans) <= tol){
-        break
-      }
-      next_x <- ans
-      lambda <- t(next_x[1:n_assets,]) %*% sigma %*%
-        next_x[1:n_assets,] / n_assets
-    }
-  }
-  return(ans[1:n_assets])
-}
-
+# MC sim ----
 
 #' @export
 boot_strap <- function(x, n) {
@@ -509,6 +525,8 @@ block_boot_strap <- function(x, n, block) {
   boot_vec[1:n]
 }
 
+# min TE ----
+
 #' @export
 te_min_qp <- function(fund, fact, force_pd = FALSE) {
 
@@ -528,64 +546,24 @@ te_min_qp <- function(fund, fact, force_pd = FALSE) {
   return(res)
 }
 
+# find n pcs ----
+
 #' @export
 sig_group_sim <- function(ret) {
 
   xcor <- cor(ret)
-  lambda <- eigen(xcor)$values
+  lamda <- eigen(xcor)$values
 
-  noise_lambda <- matrix(nrow = 1000, ncol = length(lambda))
+  noise_lamda <- matrix(nrow = 1000, ncol = length(lamda))
   for (i in 1:1000) {
     noise_ret <- apply(ret, 2, sample, size = nrow(ret), replace = FALSE)
-    noise_lambda[i, ] <- eigen(cor(noise_ret))$values
+    noise_lamda[i, ] <- eigen(cor(noise_ret))$values
   }
-  noise_95 <- apply(noise_lambda, 2, quantile, probs = 0.95)
-  return(sum(lambda > noise_95))
+  noise_95 <- apply(noise_lamda, 2, quantile, probs = 0.95)
+  return(sum(lamda > noise_95))
 }
 
-#' @export
-run_cluster <- function(ret, k_group) {
-
-  clv_res <- ClustVarLV::CLV(ret, method = 2)
-  group_res <- summary(clv_res, k_group)
-  group_nm <- rownames(group_res$groups[[1]])
-  if (k_group > 1) {
-    for (i in 2:k_group) {
-      group_nm <- c(group_nm, rownames(group_res$groups[[i]]))
-    }
-  }
-  p <- psych::pca(ret[, group_nm], k_group)
-  p2 <- psych::pca(ret, k_group)
-  group_df <- data.frame(Manager = colnames(ret),
-                         Group = ClustVarLV::get_partition(clv_res, k_group),
-                         P1 = p2$loadings[, 1],
-                         P2 = p2$loadings[, 2])
-  group_df$Group <- factor(group_df$Group, unique(group_df$Group))
-  g_biplot <- ggplot(group_df, aes(x = P2, y = P1, color = Group, label = Manager)) +
-    geom_point() +
-    geom_segment(aes(x = 0, y = 0, xend = P2, yend = P1)) +
-    ggrepel::geom_text_repel(size = 3) +
-    xlab('Component 2 Loading') + ylab('Component 1 Loading') +
-    theme(legend.position = 'none')
-  p_loadings <- data.frame(Manager = rownames(p$loadings), p$loadings[,])
-  p_load_group <- merge(p_loadings, group_df[, c('Manager', 'Group')])
-  plotdf <- tidyr::pivot_longer(p_load_group, -one_of('Manager', 'Group'))
-  plotdf$Group <- factor(plotdf$Group, unique(plotdf$Group))
-  plotdf$Manager <- factor(plotdf$Manager, unique(plotdf$Manager))
-  plotdf$name <- factor(plotdf$name, unique(plotdf$name))
-  plotdf <- plotdf[order(plotdf$Group, decreasing = TRUE), ]
-  g_load <- ggplot(plotdf, aes(x = Manager, y = value, fill = Group)) +
-    scale_x_discrete(limits = unique(plotdf$Manager)) +
-    geom_bar(stat = 'identity', position = 'dodge') +
-    coord_flip() +
-    facet_wrap(. ~ name) +
-    theme(legend.position = 'none')
-  res <- list()
-  res$biplot <- g_biplot
-  res$loadings <- g_load
-  return(res)
-}
-
+# spline daily / monthly ret ----
 
 #' @export
 daily_spline <- function(d_ret, m_ret, thresh = 0.0000001) {
@@ -593,21 +571,16 @@ daily_spline <- function(d_ret, m_ret, thresh = 0.0000001) {
   m_dt <- substr(m_dt, 1, 7)
   d_adj <- d_ret
   for (m in 1:nrow(m_ret)) {
-
     dt_ix <- paste0(m_dt[m], '/', m_dt[m])
     di <- d_ret[dt_ix]
     mi <- m_ret[m_dt[m]]
-
     lx <- -0.01
     ux <- 0.011
     for (i in 1:1000) {
-
       mx <- (lx + ux) / 2
-
       if (abs(.test_diff(di + mx, mi)) < thresh) {
         break
       }
-
       if (.test_diff(di + mx, mi) > 0) {
         ux <- mx
       } else {
@@ -709,7 +682,7 @@ roll_r2 <- function(x, b, n) {
   rcor <- lapply(rcor, \(x) {x[, nrow(x)]})
   xcor <- do.call("rbind", rcor)
   xts(xcor^2, obs$Date[n:nrow(obs)])
-}  
+}
 
 #' @title Rolling returns
 #' @param x xts of returns
@@ -723,11 +696,11 @@ roll_ret <- function(x, n, b = NULL, period = "days") {
   }
   obs <- xts_to_dataframe(x)[, -1]
   if (n > freq_to_scaler(period)) {
-    rl <- slider::slide(obs, ~calc_geo_ret(.x, period), .before = n-1, 
-                        .complete = TRUE) 
+    rl <- slider::slide(obs, ~calc_geo_ret(.x, period), .before = n-1,
+                        .complete = TRUE)
   } else {
-    rl <- slider::slide(obs, ~apply(.x+1, 2, prod)-1, .before = n-1, 
-                        .complete = TRUE)  
+    rl <- slider::slide(obs, ~apply(.x+1, 2, prod)-1, .before = n-1,
+                        .complete = TRUE)
   }
   rr <- do.call("rbind", rl)
   xts(rr, zoo::index(x)[n:nrow(x)])
@@ -740,12 +713,12 @@ roll_vol <- function(x, n, b = NULL, period = "days") {
     x <- excess_ret(x, b)
   }
   obs <- xts_to_dataframe(x)[, -1]
-  rl <- slider::slide(obs, ~calc_vol(.x, period), .before = n - 1, 
+  rl <- slider::slide(obs, ~calc_vol(.x, period), .before = n - 1,
                       .complete = TRUE)
   rv <- do.call("rbind", rl)
   xts(rv, zoo::index(x)[n:nrow(x)])
-}  
-  
+}
+
 
 #' @export
 roll_down_vol <- function(x, n, b = NULL, period = "days") {
@@ -753,7 +726,7 @@ roll_down_vol <- function(x, n, b = NULL, period = "days") {
     x <- excess_ret(x, b)
   }
   obs <- xts_to_dataframe(x)[, -1]
-  rl <- slider::slide(obs, ~calc_down_vol(.x, period), .before = n - 1, 
+  rl <- slider::slide(obs, ~calc_down_vol(.x, period), .before = n - 1,
                       .complete = TRUE)
   rv <- do.call("rbind", rl)
   xts(rv, zoo::index(x)[n:nrow(x)])
@@ -764,9 +737,9 @@ roll_style <- function(x, b, n) {
   x <- xts_to_dataframe(combo$x)
   b <- xts_to_dataframe(combo$b)
   obs <- cbind(x[,-1], b[,-1])
-  r_sty <- slider::slide(obs, ~te_min_qp(.x[,1:ncol(x)], 
-                                         .x[, (ncol(x)+1):ncol(obs)]),
+  r_sty <- slider::slide(obs, ~te_min_qp(.x[, 1], .x[, 2:ncol(obs)]),
                          .before = n-1, .complete = TRUE)
-  
+  r_sty <- do.call("rbind", r_styl)
+  xts(r_sty, x$Date[n:nrow(x)])
 }
 
