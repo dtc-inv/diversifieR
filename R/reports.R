@@ -282,18 +282,24 @@ viz_trade_off <- function(x, b = NULL,
     ggrepel::geom_text_repel() +
     scale_x_continuous(labels = scales::percent) +
     scale_y_continuous(labels = scales::percent) +
-    scale_color_manual(values = col)
+    scale_color_manual(values = col) +
     theme_light() +
     theme(legend.position = "none")
 }
 
 
-viz_style <- function(x, b, roll = FALSE, freq = "days", n = 63) {
-  if (roll) {
-
-  } else {
-    res <- te_min_qp(x, b)
-  }
+viz_roll_style <- function(x, b, n = 63, freq = "days") {
+  col <- set_plot_col(ncol(res))
+  res <- roll_style(x, b, n)
+  dat <- xts_to_tidy(res)
+  ggplot(dat, aes(x = Date, y = value, fill = name)) +
+    geom_area() +
+    ylab("") + xlab("") +
+    scale_y_continuous(labels = scales::percent) +
+    labs(fill = "",
+         title = paste0("Rolling ", n, " ", freq, " Style Analysis")) +
+    scale_fill_manual(values = col) +
+    theme_light()
 }
 
 

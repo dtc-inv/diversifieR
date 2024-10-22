@@ -732,14 +732,18 @@ roll_down_vol <- function(x, n, b = NULL, period = "days") {
   xts(rv, zoo::index(x)[n:nrow(x)])
 }
 
+#' @export
 roll_style <- function(x, b, n) {
   combo <- clean_asset_bench_rf(x, b)
   x <- xts_to_dataframe(combo$x)
   b <- xts_to_dataframe(combo$b)
   obs <- cbind(x[,-1], b[,-1])
-  r_sty <- slider::slide(obs, ~te_min_qp(.x[, 1], .x[, 2:ncol(obs)]),
+  colnames(obs)[1] <- colnames(x)[2]
+  r_sty <- slider::slide(obs, ~te_min_qp(.x[, 1], .x[, 2:ncol(obs)])$solution,
                          .before = n-1, .complete = TRUE)
-  r_sty <- do.call("rbind", r_styl)
-  xts(r_sty, x$Date[n:nrow(x)])
+  r_sty <- do.call("rbind", r_sty)
+  res <- xts(r_sty, x$Date[n:nrow(x)])
+  colnames(res) <- colnames(obs)[-1]
+  return(res)
 }
 
