@@ -1,4 +1,4 @@
-
+#' @export
 port_to_perf_summary <- function(p, bench = NULL, rf = NULL) {
   if (is.null(bench) && !is.null(p$benchmark)) {
     bench <- p$benchmark$port_ret
@@ -15,7 +15,7 @@ port_to_perf_summary <- function(p, bench = NULL, rf = NULL) {
   perf_summary(p$asset_ret, bench, rf)
 }
 
-
+#' @export
 perf_summary <- function(asset, bench, rf, freq = "days") {
   if (ncol(rf) > 1) {
     warning("rf has more than one column, only taking first column")
@@ -156,7 +156,7 @@ dtc_col <- function() {
 #'   palette, 1:n colors will be generated based on numbers
 #' @export
 set_plot_col <- function(n) {
-  col <- dtc_col()
+  col <- dtc_col()[1:n]
   if (n > length(col)) {
     col <- c(col, 1:(n - length(col)))
   }
@@ -288,6 +288,7 @@ viz_trade_off <- function(x, b = NULL,
 }
 
 
+#' @export
 viz_roll_style <- function(x, b, n = 63, freq = "days") {
   col <- set_plot_col(ncol(res))
   res <- roll_style(x, b, n)
@@ -302,6 +303,45 @@ viz_roll_style <- function(x, b, n = 63, freq = "days") {
     theme_light()
 }
 
+#' @export
+viz_equity_style <- function(x, b, n) {
+  combo <- clean_asset_bench_rf(x, b)
+  res <- te_min_qp(combo$x[, 1], combo$b)
+  asset <- data.frame(
+    Label = colnames(x)[1],
+    X = res$solution[2] + res$solution[4] - res$solution[1] - res$solution[3],
+    Y = res$solution[1] + res$solution[2] - res$solution[3] - res$solution[4]
+  )
+  if (ncol(combo$x) > 1) {
+    for (i in 2:ncol(combo$x)) {
+      res <- te_min_qp(combo$x[, i], combo$b)
+      xdf <- data.frame(
+        Label = colnames(x)[i],
+        X = res$solution[1] + res$solution[3] - res$solution[2] - res$solution[4],
+        Y = res$solution[1] + res$solution[2] - res$solution[3] - res$solution[4]
+      )
+      asset <- rbind(asset, xdf)
+    }
+  }
+  dat <- rbind(asset, eq_style_mat())
+  dat$Col <- c(colnames(combo$x), rep("zzz", 4))
+  col <- set_plot_col(ncol(combo$x))
+  ggplot(dat, aes(x = X, y = Y, label = Label, col = Col)) +
+    geom_point(size = 3) +
+    scale_color_manual(values = c(col, alpha("black", 0.5))) +
+    ggrepel::geom_text_repel() +
+    xlab("") + ylab("") +
+    theme(legend.position = "none")
+  
+}
+
+eq_style_mat <- function() {
+  data.frame(
+    Label = c("Large Value", "Large Growth", "Small Value", "Small Growth"),
+    X = c(-1, 1, -1, 1),
+    Y = c(1, 1, -1, -1)
+  )
+}
 
 #' @title Handle combing and cleaning asset, rf, and benchmarks
 #' @param x xts object of asset(s)
