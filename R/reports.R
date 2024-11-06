@@ -12,25 +12,31 @@ port_to_perf_summary <- function(p, bench = NULL, rf = NULL) {
   } else {
     rf <- p$rf
   }
-  perf_summary(p$asset_ret, bench, rf)
+  perf_summary(p$asset_ret, rf, bench)
 }
 
 #' @export
-perf_summary <- function(asset, bench, rf, freq = "days") {
+perf_summary <- function(asset, rf, bench = NULL, freq = "days") {
   if (ncol(rf) > 1) {
     warning("rf has more than one column, only taking first column")
     rf <- rf[, 1]
   }
-  combo <- xts_cbind(asset, bench)
-  combo <- xts_cbind(combo, rf)
+  if (!is.null(bench)) {
+    combo <- xts_cbind(asset, bench)
+    combo <- xts_cbind(combo, rf)
+  } else {
+    combo <- xts_cbind(asset, rf)
+  }
   sd <- first_comm_start(combo)
   ed <- last_comm_end(combo)
   combo <- cut_time(combo, sd, ed)
   res <- rm_na_col(combo)
   if (ncol(res$miss_ret) > 1) {
-    if (colnames(bench) %in% colnames(res$miss_ret)) {
-      warning("benchmark missing")
-      return(NULL)
+    if (!is.null(bench)) {
+      if (colnames(bench) %in% colnames(res$miss_ret)) {
+        warning("benchmark missing")
+        return(NULL)
+      }
     }
     if (colnames(rf) %in% colnames(res$miss_ret)) {
       warning("rf missing")
@@ -44,7 +50,9 @@ perf_summary <- function(asset, bench, rf, freq = "days") {
   ix <- ncol(asset) - sum(colnames(asset) %in% colnames(res$miss_ret))
   combo <- res$ret
   asset <- combo[, 1:ix]
-  bench <- combo[, (ix+1):(ncol(combo)-1)]
+  if (!is.null(bench)) {
+    bench <- combo[, (ix+1):(ncol(combo)-1)]
+  }
   rf <- combo[, ncol(combo)]
   combo <- combo[, -ncol(combo)]
   hist_cov <- cov(combo) * freq_to_scaler(freq)
@@ -332,7 +340,7 @@ viz_equity_style <- function(x, b, n) {
     ggrepel::geom_text_repel() +
     xlab("") + ylab("") +
     theme(legend.position = "none")
-  
+
 }
 
 eq_style_mat <- function() {
