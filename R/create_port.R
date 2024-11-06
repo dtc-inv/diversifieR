@@ -126,7 +126,7 @@ port_from_holdings <- function(
     names_from = DTCName,
     values_from = pctVal
   )
-  wgt <- df_to_xts(wgt)
+  wgt <- dataframe_to_xts(wgt)
   if (fill_na_wgt) {
     wgt[is.na(wgt)] <- 0
   }
