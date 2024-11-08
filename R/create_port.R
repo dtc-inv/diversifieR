@@ -32,6 +32,7 @@ dtc_name_match_ret <- function(dtc_name, ret) {
   # if daily returns are missing begin month check procedure
   if (any(is.na(ixd))) {
     ixm <- match(dtc_name[is.na(ixd)], colnames(ret$m))
+    ixm[is.na(ixm)] <- FALSE
     # there are monthly returns to fill
     if (any(ixm)) {
       month_bool <- TRUE
