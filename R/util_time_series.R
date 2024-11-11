@@ -164,7 +164,10 @@ xts_rbind <- function(new, old) {
   old_id <- paste0(old_ldf$Date, old_ldf$name)
   # find new ids place in old ids, replace with new values
   ix <- na.omit(match(new_id, old_id))
-  combo <- rbind(new_ldf, old_ldf[-ix, ])
+  if (length(ix) > 0) {
+    old_ldf <- old_ldf[-ix, ]
+  }
+  combo <- rbind(new_ldf, old_ldf)
   combo_w <- pivot_wider(combo, id_cols = Date, names_from = name,
                          values_from = value)
   return(dataframe_to_xts(combo_w))

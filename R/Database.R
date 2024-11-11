@@ -524,7 +524,7 @@ Database <- R6::R6Class(
       wdf <- pivot_wider(ret_df, id_cols = date, values_from = value,
                          names_from = DTCName)
       wdf <- dataframe_to_xts(wdf)
-      combo <- xts_rbind(old_ret, wdf)
+      combo <- xts_rbind(wdf, old_ret)
       combo <- xts_to_dataframe(combo)
       write_feather(combo, self$bucket$path('returns/daily/mutual-fund.arrow'))
     },
@@ -685,7 +685,7 @@ Database <- R6::R6Class(
       res <- dtc_name_match_ret(dtc_name, self$ret)
       return(res$r)
     },
-    
+
     ## QUAL DATA ----
 
     #' @description
