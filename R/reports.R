@@ -56,7 +56,7 @@ perf_summary <- function(asset, rf, bench = NULL, freq = "days") {
   rf <- combo[, ncol(combo)]
   combo <- combo[, -ncol(combo)]
   hist_cov <- cov(combo) * freq_to_scaler(freq)
-  if (nrow(combo) >= 252) {
+  if (nrow(combo) >= freq_to_scaler(freq)) {
     geo_ret <- calc_geo_ret(combo, freq)
   } else {
     geo_ret <- apply(combo + 1, 2, prod)
@@ -325,7 +325,7 @@ viz_equity_style <- function(x, b, n) {
       res <- te_min_qp(combo$x[, i], combo$b)
       xdf <- data.frame(
         Label = colnames(x)[i],
-        X = res$solution[1] + res$solution[3] - res$solution[2] - res$solution[4],
+        X = res$solution[2] + res$solution[3] - res$solution[1] - res$solution[4],
         Y = res$solution[1] + res$solution[2] - res$solution[3] - res$solution[4]
       )
       asset <- rbind(asset, xdf)
@@ -437,3 +437,7 @@ run_cluster <- function(ret, k_group) {
   return(res)
 }
 
+tbl_cal_ret <- function(x) {
+  dt <- zoo::index(x)
+  yr <- change_freq(x, "years")
+}

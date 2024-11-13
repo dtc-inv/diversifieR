@@ -609,7 +609,7 @@ Database <- R6::R6Class(
         x <- try(download_fs_ctf_ret(
           m_id[i],
           self$api_keys,
-          paste0("-", t_minus),
+          t_minus,
           freq = 'M'))
         if ('try-error' %in% class(x)) {
           rl[[i]] <- NULL
