@@ -622,7 +622,7 @@ Database <- R6::R6Class(
       colnames(m_ret) <- ctf$DTCName[ix]
       if (add_row) {
         old_ret <- read_feather(self$bucket$path('returns/monthly/ctf.arrow'))
-        combo <- xts_rbind(dataframe_to_xts(old_ret), m_ret)
+        combo <- xts_rbind(m_ret, dataframe_to_xts(old_ret))
         df <- xts_to_dataframe(combo)
 
       } else {
@@ -658,7 +658,7 @@ Database <- R6::R6Class(
       colnames(d_ret) <- ctf$DTCName[ix]
       if (add_row) {
         old_ret <- read_feather(self$bucket$path('returns/daily/ctf.arrow'))
-        combo <- xts_rbind(dataframe_to_xts(old_ret), d_ret)
+        combo <- xts_rbind(d_ret, dataframe_to_xts(old_ret))
         df <- xts_to_dataframe(combo)
       } else {
         df <- xts_to_dataframe(d_ret)
