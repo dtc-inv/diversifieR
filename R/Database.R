@@ -179,7 +179,7 @@ Database <- R6::R6Class(
     #' @details
     #' Holdings each month between the start and end dates will be downloaded
     #' and saved to AWS.
-    back_fill_bd_holdings = function(dtc_name, date_start, date_end) {
+    back_fill_bd_holdings = function(dtc_name, date_start, date_end, freq) {
       obs <- subset_df(self$msl, "DTCName", dtc_name)
       if (nrow(obs) == 0) {
         warning(paste0(dtc_name, " not found"))
@@ -190,15 +190,11 @@ Database <- R6::R6Class(
       if ("try-error" %in% class(date_start) | "try-error" %in% class(date)) {
         return("date input error, could not convert with as.Date()")
       }
-      xmon <- lubridate::ceiling_date(seq.Date(
-        date_start,
-        date_end,
-        by = freq))
-      xmon <- as.Date(xmon) - 1
       bizdays::create.calendar('cal', holidays =
                                  timeDate::holidayNYSE(1900:2100),
                                weekdays = c('saturday', 'sunday'))
-      date_seq <- bizdays::adjust.previous(xmon, 'cal')
+      date_seq <- bizdays::adjust.previous(
+        seq.Date(date_start, date_end, freq), 'cal')
       xdf <- data.frame()
       for (i in 1:length(date_seq)) {
         xdf <- rbind(xdf, download_bd(obs$BDAccountID, self$api_keys,
