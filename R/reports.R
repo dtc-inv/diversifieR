@@ -437,7 +437,24 @@ run_cluster <- function(ret, k_group) {
   return(res)
 }
 
-tbl_cal_ret <- function(x) {
-  dt <- zoo::index(x)
-  yr <- change_freq(x, "years")
+#' @export
+eom_cal_per <- function(as_of = NULL) {
+  if (is.null(as_of)) {
+    as_of <- lubridate::floor_date(Sys.Date(), "months") - 1
+  }
+  dt <- c(
+    as_of,
+    add_with_rollback(as_of, months(-1)),
+    add_with_rollback(as_of, months(-3)),
+    as_of - years(1),
+    as_of - years(3),
+    as_of - years(5),
+    as_of - years(10)
+  )
+  names(dt) <- c("As of", "1 Mo", "3 Mo", "1 Yr", "3 Yr", "5 Yr", "10 Yr")
+  return(dt)
+}
+
+trailing_perf <- function(x, b) {
+
 }
