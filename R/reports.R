@@ -59,7 +59,7 @@ perf_summary <- function(asset, rf, bench = NULL, freq = "days") {
   if (nrow(combo) >= freq_to_scaler(freq)) {
     geo_ret <- calc_geo_ret(combo, freq)
   } else {
-    geo_ret <- apply(combo + 1, 2, prod)
+    geo_ret <- apply(combo + 1, 2, prod) - 1
   }
   vol <- calc_vol(combo, freq)
   down_vol <- calc_down_vol(combo, "days")
