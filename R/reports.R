@@ -194,6 +194,7 @@ viz_drawdowns <- function(x) {
 viz_wealth_index <- function(x, init_val = 100) {
   wi <- ret_to_price(x) * init_val
   dat <- xts_to_tidy(wi)
+  dat$name <- factor(dat$name, unique(dat$name))
   col <- set_plot_col(ncol(x))
   ggplot(dat, aes(x = Date, y = value, color = name)) +
     geom_line() +
