@@ -62,10 +62,10 @@ perf_summary <- function(asset, rf, bench = NULL, freq = "days") {
     geo_ret <- apply(combo + 1, 2, prod) - 1
   }
   vol <- calc_vol(combo, freq)
-  down_vol <- calc_down_vol(combo, "days")
+  down_vol <- calc_down_vol(combo, freq)
   max_dd <- calc_max_drawdown(combo)
-  sharpe <- calc_sharpe_ratio(combo, rf, "days")
-  sortino <- calc_sortino_ratio(combo, rf, "days")
+  sharpe <- calc_sharpe_ratio(combo, rf, freq)
+  sortino <- calc_sortino_ratio(combo, rf, freq)
   recov <- geo_ret / -max_dd
   if (is.null(bench)) {
     x <- rbind(geo_ret, vol, down_vol, max_dd, sharpe, sortino, recov)
