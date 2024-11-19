@@ -1,15 +1,22 @@
 #' @title Match DTCNames to daily and monthly returns
 #' @param dtc_name DTCNames to match
 #' @param ret list of daily and monthly returns from Database
+#' @param force_month only look for monthly returns
 #' @details
 #' Daily returns are matched first. If daily returns are missing then the
 #' monthly return files are checked. If there is a combo of daily and monthly
 #' the daily returns are converted to monthly returns and combined.
 #' @export
-dtc_name_match_ret <- function(dtc_name, ret) {
-  month_bool <- FALSE
-  ixd <- match(dtc_name, colnames(ret$d))
-  # no daily returns found,exit function by returning result list of monthly
+dtc_name_match_ret <- function(dtc_name, ret, force_month = FALSE) {
+
+  if (force_month) {
+    month_bool <- TRUE
+    ixd <- NA
+  } else {
+    month_bool <- FALSE
+    ixd <- match(dtc_name, colnames(ret$d))
+  }
+  # no daily returns found, exit function by returning result list of monthly
   # data
   if (all(is.na(ixd))) {
     ixm <- match(dtc_name[is.na(ixd)], colnames(ret$m))
