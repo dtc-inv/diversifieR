@@ -317,7 +317,7 @@ download_fs_exchange_ret <- function(
 }
 
 #' @export
-download_fs_mutual_fund_ret <- function(ids, api_keys, days_back) {
+download_fs_mutual_fund_ret <- function(ids, api_keys, t_back = 5, freq = "D") {
   res <- list()
   if (length(ids) > 50) {
     iter <- seq(1, length(ids), 49)
@@ -330,7 +330,7 @@ download_fs_mutual_fund_ret <- function(ids, api_keys, days_back) {
   res$ids <- ids
   res$iter <- iter
   ret_df <- data.frame()
-  formulas <- paste0('P_TOTAL_RETURNC(-', days_back, 'D,NOW,D,USD)')
+  formulas <- paste0('P_TOTAL_RETURNC(-', t_back, freq, ",NOW,", freq, ",USD)")
   for (i in 1:(length(iter)-1)) {
     xids <- ids[iter[i]:iter[i+1]]
     json <- download_fs(
