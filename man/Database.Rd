@@ -261,7 +261,7 @@ to update if more keys are added.
 \if{latex}{\out{\hypertarget{method-Database-back_fill_bd_holdings}{}}}
 \subsection{Method \code{back_fill_bd_holdings()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Database$back_fill_bd_holdings(dtc_name, date_start, date_end)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Database$back_fill_bd_holdings(dtc_name, date_start, date_end, freq)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

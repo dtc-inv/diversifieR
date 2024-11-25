@@ -602,7 +602,7 @@ monthly_spline <- function(m_ret, q_ret, thresh = 0.00001) {
   q_dt <- zoo::index(q_ret)
   if (floor_date(q_dt)[1] < zoo::index(m_ret)[1]) {
     warning("quarterly time-series starts before monthly")
-    q_dt <- q_dt[q_dt > zoo::index(m_ret)]
+    q_dt <- q_dt[q_dt > zoo::index(m_ret)[1]]
     if (length(q_dt) == 0) {
       stop("no overlapping dates found")
     }

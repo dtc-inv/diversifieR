@@ -4,12 +4,14 @@
 \alias{dtc_name_match_ret}
 \title{Match DTCNames to daily and monthly returns}
 \usage{
-dtc_name_match_ret(dtc_name, ret)
+dtc_name_match_ret(dtc_name, ret, force_month = FALSE)
 }
 \arguments{
 \item{dtc_name}{DTCNames to match}
 
 \item{ret}{list of daily and monthly returns from Database}
+
+\item{force_month}{only look for monthly returns}
 }
 \description{
 Match DTCNames to daily and monthly returns
