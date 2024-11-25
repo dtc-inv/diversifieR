@@ -652,3 +652,13 @@ download_fred <- function(series_id, fred_api) {
   return(x)
 }
 
+# MSCI Private I
+
+read_private_xts <- function(file_nm, field_nm) {
+  xdf <- readxl::read_excel(file_nm)
+  r <- dataframe_to_xts(xdf)
+  r <- r$`Return*`
+  colnames(r) <- field_nm
+  return(r)
+}
+
