@@ -639,8 +639,6 @@ unsmooth_ret <- function(x) {
 }
 
 
-
-
 #' @export
 summary_stats <- function(fund, bench, rf, period) {
 
